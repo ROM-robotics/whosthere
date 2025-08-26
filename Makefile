@@ -1,7 +1,7 @@
 default: fmt lint install test
 
 build:
-	go build -v ./...
+	go build
 
 install: build
 	go install -v ./...
