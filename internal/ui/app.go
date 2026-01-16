@@ -2,6 +2,7 @@ package ui
 
 import (
 	"context"
+	"math/rand"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -39,14 +40,7 @@ type App struct {
 
 func NewApp(cfg *config.Config, ouiDB *oui.Registry, version string) *App {
 	app := tview.NewApplication()
-	appState := state.NewAppState()
-	appState.SetVersion(version)
-	themeName := config.DefaultThemeName
-	if cfg != nil && cfg.Theme.Name != "" {
-		themeName = cfg.Theme.Name
-	}
-	appState.SetCurrentTheme(themeName)
-	appState.SetPreviousTheme(themeName)
+	appState := state.NewAppState(cfg, version)
 
 	a := &App{
 		Application: app,
@@ -56,17 +50,13 @@ func NewApp(cfg *config.Config, ouiDB *oui.Registry, version string) *App {
 	}
 
 	a.emit = func(e events.Event) {
-		select {
-		case a.events <- e:
-		default:
-			// drop if full
-		}
+		a.events <- e
 	}
 	a.pages = tview.NewPages()
 
 	theme.SetRegisterFunc(a.RegisterPrimitive)
 
-	a.applyTheme(themeName)
+	a.applyTheme(appState.CurrentTheme())
 	a.setupPages(cfg)
 
 	if cfg != nil {
@@ -106,14 +96,16 @@ func (a *App) Run() error {
 
 func (a *App) setupPages(cfg *config.Config) {
 	dashboardPage := views.NewDashboardView(a.emit, a.QueueUpdateDraw)
-	detailPage := views.NewDetailView(a.emit)
+	detailPage := views.NewDetailView(a.emit, a.QueueUpdateDraw)
 	splashPage := views.NewSplashView(a.emit)
 	themePickerModal := views.NewThemeModalView(a.emit)
+	portScanModal := views.NewPortScanModalView(a.emit)
 
 	a.pages.AddPage(routes.RouteDashboard, dashboardPage, true, false)
 	a.pages.AddPage(routes.RouteDetail, detailPage, true, false)
 	a.pages.AddPage(routes.RouteSplash, splashPage, true, false)
 	a.pages.AddPage(routes.RouteThemePicker, themePickerModal, true, false)
+	a.pages.AddPage(routes.RoutePortScan, portScanModal, true, false)
 
 	initialPage := routes.RouteDashboard
 	if cfg != nil && cfg.Splash.Enabled {
@@ -280,6 +272,17 @@ func (a *App) handleEvents() {
 			a.state.SetIsDiscovering(true)
 		case events.DiscoveryStopped:
 			a.state.SetIsDiscovering(false)
+		case events.PortScanStarted:
+			a.state.SetIsPortscanning(true)
+			a.emit(events.HideView{})
+			go func() {
+				// temporary placeholder to mimic "real" scanning durations
+				duration := time.Duration(2+rand.Intn(4)) * time.Second
+				time.Sleep(duration)
+				a.emit(events.PortScanStopped{})
+			}()
+		case events.PortScanStopped:
+			a.state.SetIsPortscanning(false)
 		}
 
 		a.rerenderVisibleViews()

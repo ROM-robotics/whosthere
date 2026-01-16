@@ -12,6 +12,7 @@ import (
 	"github.com/ramonvermeulen/whosthere/internal/core/state"
 	"github.com/ramonvermeulen/whosthere/internal/ui/events"
 	"github.com/ramonvermeulen/whosthere/internal/ui/theme"
+	"github.com/ramonvermeulen/whosthere/internal/ui/utils"
 	"github.com/rivo/tview"
 )
 
@@ -33,6 +34,7 @@ type DeviceTable struct {
 }
 
 // SearchStatus describes the current regex search UI state.
+// TODO(ramon) rewrite to also be more compliant with AppState driven / elm architecture
 type SearchStatus struct {
 	Showing bool        // whether the search bar should be shown
 	Text    string      // text to render in the search bar
@@ -119,7 +121,7 @@ func (dt *DeviceTable) handleNormalKey(ev *tcell.EventKey) *tcell.EventKey {
 			dt.searchInput = ""
 		}
 		dt.filterError = false
-		dt.emitStatus()
+		dt.emitStatusWith(dt.searchInput)
 		return nil
 	case ev.Rune() == 'g':
 		dt.SelectFirst()
@@ -142,19 +144,19 @@ func (dt *DeviceTable) SetFilter(pattern string) error {
 		dt.filterRE = nil
 		dt.refresh()
 		dt.filterError = false
-		dt.emitStatus()
+		dt.emitStatusWith(dt.searchInput)
 		return nil
 	}
 	re, err := regexp.Compile("(?i)" + pattern)
 	if err != nil {
 		dt.filterError = true
-		dt.emitStatus()
+		dt.emitStatusWith(dt.searchInput)
 		return err
 	}
 	dt.filterRE = re
 	dt.filterError = false
 	dt.refresh()
-	dt.emitStatus()
+	dt.emitStatusWith(dt.searchInput)
 	return nil
 }
 
@@ -170,13 +172,12 @@ func (dt *DeviceTable) applySearch(pattern string) {
 		return
 	}
 	if err := dt.SetFilter(pattern); err != nil {
-		// Keep last good filter, only mark error state.
 		dt.filterError = true
 		dt.emitStatusWith(pattern)
 		return
 	}
 	dt.filterError = false
-	dt.emitStatus()
+	dt.emitStatusWith(dt.searchInput)
 }
 
 // Render updates the table with the latest devices from state.
@@ -225,7 +226,7 @@ func (dt *DeviceTable) buildRows() []tableRow {
 			hostname:     d.DisplayName,
 			mac:          d.MAC,
 			manufacturer: d.Manufacturer,
-			lastSeen:     fmtDuration(time.Since(d.LastSeen)),
+			lastSeen:     utils.FmtDuration(time.Since(d.LastSeen)),
 		}
 		if dt.filterRE != nil && !dt.rowMatches(&row) {
 			continue
@@ -244,7 +245,7 @@ func (dt *DeviceTable) refresh() {
 	headers := []string{"IP", "Display Name", "MAC", "Manufacturer", "Last Seen"}
 
 	for i, h := range headers {
-		text := truncate(h, maxColWidth)
+		text := utils.Truncate(h, maxColWidth)
 		dt.SetCell(0, i, tview.NewTableCell(text).
 			SetSelectable(false).
 			SetTextColor(tview.Styles.SecondaryTextColor).
@@ -255,18 +256,18 @@ func (dt *DeviceTable) refresh() {
 
 	title := fmt.Sprintf(" Devices (%v) ", len(rows))
 	if dt.filterRE != nil {
-		title += fmt.Sprintf(" [%s]<%s>[-] ", colorToHexTag(tview.Styles.SecondaryTextColor), dt.filterRE.String())
+		title += fmt.Sprintf(" [%s]<%s>[-] ", utils.ColorToHexTag(tview.Styles.SecondaryTextColor), dt.filterRE.String())
 	}
 	dt.SetTitle(title)
 
 	for rowIndex, rowData := range rows {
 		r := rowIndex + 1
 
-		ipText := truncate(rowData.ip, maxColWidth)
-		hostText := truncate(rowData.hostname, maxColWidth)
-		macText := truncate(rowData.mac, maxColWidth)
-		manuText := truncate(rowData.manufacturer, maxColWidth)
-		seenText := truncate(rowData.lastSeen, maxColWidth)
+		ipText := utils.Truncate(rowData.ip, maxColWidth)
+		hostText := utils.Truncate(rowData.hostname, maxColWidth)
+		macText := utils.Truncate(rowData.mac, maxColWidth)
+		manuText := utils.Truncate(rowData.manufacturer, maxColWidth)
+		seenText := utils.Truncate(rowData.lastSeen, maxColWidth)
 
 		dt.SetCell(r, 0, tview.NewTableCell(ipText).SetExpansion(1))
 		dt.SetCell(r, 1, tview.NewTableCell(hostText).SetExpansion(1))
@@ -278,7 +279,7 @@ func (dt *DeviceTable) refresh() {
 	if dt.GetRowCount() > 1 {
 		selectedRow := -1
 		for i, row := range rows {
-			if truncate(row.ip, maxColWidth) == selectedIP {
+			if utils.Truncate(row.ip, maxColWidth) == selectedIP {
 				selectedRow = i + 1 // +1 for header
 				break
 			}
@@ -290,9 +291,6 @@ func (dt *DeviceTable) refresh() {
 		}
 	}
 }
-
-// emitStatus reports the current search status to any subscriber.
-func (dt *DeviceTable) emitStatus() { dt.emitStatusWith(dt.searchInput) }
 
 func (dt *DeviceTable) emitStatusWith(input string) {
 	if dt.onSearchStatus == nil {
@@ -334,29 +332,4 @@ func (dt *DeviceTable) rowMatches(r *tableRow) bool {
 		dt.filterRE.MatchString(r.mac) ||
 		dt.filterRE.MatchString(r.manufacturer) ||
 		dt.filterRE.MatchString(r.lastSeen)
-}
-
-func fmtDuration(d time.Duration) string {
-	if d < time.Second {
-		return "<1s"
-	}
-	if d < time.Minute {
-		return fmt.Sprintf("%ds", int(d/time.Second))
-	}
-	return fmt.Sprintf("%dm", int(d/time.Minute))
-}
-
-func truncate(s string, maxLen int) string {
-	if maxLen <= 0 || len(s) <= maxLen {
-		return s
-	}
-	if maxLen <= 1 {
-		return s[:maxLen]
-	}
-	return s[:maxLen-1] + "…"
-}
-
-func colorToHexTag(c tcell.Color) string {
-	r, g, b := c.RGB()
-	return fmt.Sprintf("#%02x%02x%02x", r, g, b)
 }

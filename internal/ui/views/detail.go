@@ -2,7 +2,6 @@ package views
 
 import (
 	"fmt"
-	"sort"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -11,6 +10,7 @@ import (
 	"github.com/ramonvermeulen/whosthere/internal/ui/events"
 	"github.com/ramonvermeulen/whosthere/internal/ui/routes"
 	"github.com/ramonvermeulen/whosthere/internal/ui/theme"
+	"github.com/ramonvermeulen/whosthere/internal/ui/utils"
 	"github.com/rivo/tview"
 )
 
@@ -23,10 +23,11 @@ type DetailView struct {
 	header    *components.Header
 	statusBar *components.StatusBar
 
-	emit func(events.Event)
+	emit  func(events.Event)
+	queue func(f func())
 }
 
-func NewDetailView(emit func(events.Event)) *DetailView {
+func NewDetailView(emit func(events.Event), queue func(f func())) *DetailView {
 	main := tview.NewFlex().SetDirection(tview.FlexRow)
 	header := components.NewHeader()
 
@@ -38,7 +39,7 @@ func NewDetailView(emit func(events.Event)) *DetailView {
 		SetBackgroundColor(tview.Styles.PrimitiveBackgroundColor)
 
 	statusBar := components.NewStatusBar()
-	statusBar.SetHelp("Esc/q: Back")
+	statusBar.SetHelp("Esc/q: Back" + components.Divider + "p: Port Scan")
 
 	main.AddItem(header, 1, 0, false)
 	main.AddItem(info, 0, 1, true)
@@ -50,6 +51,7 @@ func NewDetailView(emit func(events.Event)) *DetailView {
 		header:    header,
 		statusBar: statusBar,
 		emit:      emit,
+		queue:     queue,
 	}
 
 	info.SetInputCapture(handleInput(p))
@@ -69,6 +71,9 @@ func handleInput(p *DetailView) func(ev *tcell.EventKey) *tcell.EventKey {
 		case ev.Key() == tcell.KeyEsc || ev.Rune() == 'q':
 			p.emit(events.NavigateTo{Route: routes.RouteDashboard, Overlay: true})
 			return nil
+		case ev.Rune() == 'p':
+			p.emit(events.NavigateTo{Route: routes.RoutePortScan, Overlay: true})
+			return nil
 		default:
 			return ev
 		}
@@ -86,8 +91,8 @@ func (d *DetailView) Render(s state.ReadOnly) {
 		return
 	}
 
-	labelColor := colorToHexTag(tview.Styles.SecondaryTextColor)
-	valueColor := colorToHexTag(tview.Styles.PrimaryTextColor)
+	labelColor := utils.ColorToHexTag(tview.Styles.SecondaryTextColor)
+	valueColor := utils.ColorToHexTag(tview.Styles.PrimaryTextColor)
 	formatTime := func(t time.Time) string {
 		if t.IsZero() {
 			return ""
@@ -106,7 +111,7 @@ func (d *DetailView) Render(s state.ReadOnly) {
 	if len(device.Sources) == 0 {
 		_, _ = fmt.Fprintln(d.info, "  (none)")
 	} else {
-		for _, src := range sortedKeys(device.Sources) {
+		for _, src := range utils.SortedKeys(device.Sources) {
 			_, _ = fmt.Fprintf(d.info, "  %s\n", src)
 		}
 	}
@@ -127,27 +132,21 @@ func (d *DetailView) Render(s state.ReadOnly) {
 	if len(device.ExtraData) == 0 {
 		_, _ = fmt.Fprintln(d.info, "  (none)")
 	} else {
-		for _, k := range sortedKeys(device.ExtraData) {
+		for _, k := range utils.SortedKeys(device.ExtraData) {
 			_, _ = fmt.Fprintf(d.info, "  %s: %s\n", k, device.ExtraData[k])
 		}
 	}
 
 	d.header.Render(s)
 	d.statusBar.Render(s)
-}
 
-// colorToHexTag converts a tcell.Color to a tview dynamic color hex tag.
-func colorToHexTag(c tcell.Color) string {
-	r, g, b := c.RGB()
-	return fmt.Sprintf("#%02x%02x%02x", r, g, b)
-}
-
-// sortedKeys is a helper to return asc sorted map keys.
-func sortedKeys[T any](m map[string]T) []string {
-	keys := make([]string, 0, len(m))
-	for k := range m {
-		keys = append(keys, k)
+	if s.IsPortscanning() {
+		d.statusBar.Spinner().SetSuffix(" Port scanning...")
+		d.statusBar.Spinner().Start(d.queue)
+	} else if s.IsDiscovering() {
+		d.statusBar.Spinner().SetSuffix(" Discovering Devices...")
+		d.statusBar.Spinner().Start(d.queue)
+	} else {
+		d.statusBar.Spinner().Stop(d.queue)
 	}
-	sort.Strings(keys)
-	return keys
 }

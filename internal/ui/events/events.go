@@ -40,3 +40,9 @@ type DiscoveryStarted struct{}
 
 // DiscoveryStopped is emitted when discovery stops.
 type DiscoveryStopped struct{}
+
+// PortScanStarted is emitted when port scan starts.
+type PortScanStarted struct{}
+
+// PortScanStopped is emitted when port scan stops.
+type PortScanStopped struct{}

@@ -5,4 +5,5 @@ const (
 	RouteSplash      = "splash"
 	RouteDetail      = "detail"
 	RouteThemePicker = "theme-picker"
+	RoutePortScan    = "port-scan"
 )
