@@ -109,6 +109,15 @@ func writeConfigFile(path string, cfg *Config) error {
 
 // marshalConfigWithComments creates a YAML representation with helpful comments.
 func marshalConfigWithComments(cfg *Config) ([]byte, error) {
+	tcpPorts := ""
+	for _, p := range cfg.PortScanner.TCP {
+		tcpPorts += fmt.Sprintf("    - %d\n", p)
+	}
+	udpPorts := ""
+	for _, p := range cfg.PortScanner.UDP {
+		udpPorts += fmt.Sprintf("    - %d\n", p)
+	}
+
 	commented := fmt.Sprintf(`# whosthere configuration file
 # For more information, visit: https://github.com/ramonvermeulen/whosthere
 
@@ -150,6 +159,13 @@ scanners:
     enabled: %t
   arp:
     enabled: %t
+
+# Port scanner configuration
+port_scanner:
+  tcp:
+%s
+  udp:
+%s
 `,
 		cfg.ScanInterval,
 		cfg.ScanDuration,
@@ -159,6 +175,8 @@ scanners:
 		cfg.Scanners.MDNS.Enabled,
 		cfg.Scanners.SSDP.Enabled,
 		cfg.Scanners.ARP.Enabled,
+		tcpPorts,
+		udpPorts,
 	)
 
 	return []byte(commented), nil

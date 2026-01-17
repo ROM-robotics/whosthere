@@ -17,7 +17,8 @@ const (
 	CustomThemeName  = "custom"
 )
 
-var DefaultPorts = []int{21, 22, 23, 25, 53, 80, 110, 135, 139, 143, 161, 389, 443, 445, 993, 995, 1433, 1521, 3306, 3389, 5432, 5900, 8080, 8443, 9000, 9090, 9200, 9300, 10000, 27017}
+var DefaultTCPPorts = []int{21, 22, 23, 25, 80, 110, 135, 139, 143, 389, 443, 445, 993, 995, 1433, 1521, 3306, 3389, 5432, 5900, 8080, 8443, 9000, 9090, 9200, 9300, 10000, 27017}
+var DefaultUDPPorts = []int{53, 161}
 
 // ThemeConfig selects a theme by name and optionally carries custom color overrides.
 type ThemeConfig struct {
@@ -35,14 +36,14 @@ type ThemeConfig struct {
 	ContrastSecondaryTextColor  string `yaml:"contrast_secondary_text_color"`
 }
 
-// Config captures runtime configuration values loaded from the YAML config file.
+// PortScannerConfig captures runtime configuration values loaded from the YAML config file.
 type Config struct {
-	ScanInterval time.Duration `yaml:"scan_interval"`
-	ScanDuration time.Duration `yaml:"scan_duration"`
-	Splash       SplashConfig  `yaml:"splash"`
-	Theme        ThemeConfig   `yaml:"theme"`
-	Scanners     ScannerConfig `yaml:"scanners"`
-	Ports        []int         `yaml:"ports"`
+	ScanInterval time.Duration     `yaml:"scan_interval"`
+	ScanDuration time.Duration     `yaml:"scan_duration"`
+	Splash       SplashConfig      `yaml:"splash"`
+	Theme        ThemeConfig       `yaml:"theme"`
+	Scanners     ScannerConfig     `yaml:"scanners"`
+	PortScanner  PortScannerConfig `yaml:"port_scanner"`
 }
 
 // SplashConfig controls the splash screen visibility and timing.
@@ -63,7 +64,13 @@ type ScannerToggle struct {
 	Enabled bool `yaml:"enabled"`
 }
 
-// DefaultConfig builds a Config pre-populated with baked-in defaults.
+// PortScannerConfig defines TCP and UDP ports to scan.
+type PortScannerConfig struct {
+	TCP []int `yaml:"tcp"`
+	UDP []int `yaml:"udp"`
+}
+
+// DefaultConfig builds a PortScannerConfig pre-populated with baked-in defaults.
 func DefaultConfig() *Config {
 	return &Config{
 		ScanInterval: DefaultScanInterval,
@@ -72,9 +79,9 @@ func DefaultConfig() *Config {
 			Enabled: DefaultSplashEnabled,
 			Delay:   DefaultSplashDelay,
 		},
-		Theme:    ThemeConfig{Name: DefaultThemeName},
-		Scanners: ScannerConfig{MDNS: ScannerToggle{Enabled: true}, SSDP: ScannerToggle{Enabled: true}, ARP: ScannerToggle{Enabled: true}},
-		Ports:    DefaultPorts,
+		Theme:       ThemeConfig{Name: DefaultThemeName},
+		Scanners:    ScannerConfig{MDNS: ScannerToggle{Enabled: true}, SSDP: ScannerToggle{Enabled: true}, ARP: ScannerToggle{Enabled: true}},
+		PortScanner: PortScannerConfig{TCP: DefaultTCPPorts, UDP: DefaultUDPPorts},
 	}
 }
 
@@ -109,8 +116,12 @@ func (c *Config) validateAndNormalize() error {
 		c.Scanners.ARP.Enabled = true
 	}
 
-	if len(c.Ports) == 0 {
-		c.Ports = DefaultPorts
+	if len(c.PortScanner.TCP) == 0 {
+		c.PortScanner.TCP = DefaultTCPPorts
+	}
+
+	if len(c.PortScanner.UDP) == 0 {
+		c.PortScanner.UDP = DefaultUDPPorts
 	}
 
 	if len(errs) > 0 {

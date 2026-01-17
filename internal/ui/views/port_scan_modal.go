@@ -24,9 +24,9 @@ var commonPorts = []int{22, 80, 443, 3389, 8080}
 func NewPortScanModalView(emit func(events.Event)) *PortScanModalView {
 	modal := tview.NewModal().
 		SetText("").
-		AddButtons([]string{"Scan", "Cancel"}).
+		AddButtons([]string{"Start Scan", "Cancel"}).
 		SetDoneFunc(func(buttonIndex int, buttonLabel string) {
-			if buttonLabel == "Scan" {
+			if buttonIndex == 0 {
 				emit(events.PortScanStarted{})
 			} else {
 				emit(events.HideView{})
@@ -59,8 +59,13 @@ func (p *PortScanModalView) Render(s state.ReadOnly) {
 		p.Modal.SetText("No device selected.")
 		return
 	}
+	cfg := s.Config()
+	udpPorts := cfg.PortScanner.UDP
+	tcpPorts := cfg.PortScanner.TCP
 
-	text := fmt.Sprintf("Ports to scan:\n\n%v", commonPorts)
+	text := fmt.Sprint("The following ports will be scanned:\n\n")
+	text += fmt.Sprintf("UDP: %v\n\n", udpPorts)
+	text += fmt.Sprintf("TCP: %v", tcpPorts)
 
 	p.Modal.SetText(text).SetTitle(fmt.Sprintf(" IP: %s ", device.IP))
 }

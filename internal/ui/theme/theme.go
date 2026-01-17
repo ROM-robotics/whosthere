@@ -465,7 +465,9 @@ func ApplyToPrimitive(p tview.Primitive) {
 
 	case *tview.Modal:
 		v.SetTextColor(tview.Styles.PrimaryTextColor)
-		v.SetButtonBackgroundColor(tview.Styles.ContrastBackgroundColor)
+		v.SetButtonStyle(tcell.StyleDefault.
+			Foreground(tview.Styles.PrimaryTextColor).
+			Background(tview.Styles.PrimitiveBackgroundColor))
 		v.SetButtonTextColor(tview.Styles.PrimaryTextColor)
 		v.SetBackgroundColor(tview.Styles.ContrastBackgroundColor)
 		v.SetBorderColor(tview.Styles.BorderColor)

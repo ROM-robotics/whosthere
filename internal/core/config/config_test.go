@@ -135,6 +135,12 @@ scanners:
     enabled: false
   arp:
     enabled: true
+port_scanner:
+  tcp:
+    - 80
+    - 443
+  udp:
+    - 53
 `
 
 	cfg := DefaultConfig()
@@ -160,6 +166,12 @@ scanners:
 	}
 	if !cfg.Scanners.MDNS.Enabled || cfg.Scanners.SSDP.Enabled || !cfg.Scanners.ARP.Enabled {
 		t.Errorf("scanner flags unexpected: %+v", cfg.Scanners)
+	}
+	if len(cfg.PortScanner.TCP) != 2 || cfg.PortScanner.TCP[0] != 80 || cfg.PortScanner.TCP[1] != 443 {
+		t.Errorf("tcp ports unexpected: %v", cfg.PortScanner.TCP)
+	}
+	if len(cfg.PortScanner.UDP) != 1 || cfg.PortScanner.UDP[0] != 53 {
+		t.Errorf("udp ports unexpected: %v", cfg.PortScanner.UDP)
 	}
 }
 

@@ -19,6 +19,7 @@ type ReadOnly interface {
 	FilterPattern() string
 	IsDiscovering() bool
 	IsPortscanning() bool
+	Config() config.Config
 }
 
 // AppState holds application-level state shared across views and
@@ -34,12 +35,14 @@ type AppState struct {
 	filterPattern  string
 	isDiscovering  bool
 	isPortscanning bool
+	cfg            *config.Config
 }
 
 func NewAppState(cfg *config.Config, version string) *AppState {
 	s := &AppState{
 		devices: make(map[string]discovery.Device),
 		version: version,
+		cfg:     cfg,
 	}
 
 	themeName := config.DefaultThemeName
@@ -193,6 +196,13 @@ func (s *AppState) IsPortscanning() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.isPortscanning
+}
+
+// Config returns the port scanner configuration.
+func (s *AppState) Config() config.Config {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return *s.cfg
 }
 
 // ReadOnly returns a read-only interface to the state.
