@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/goccy/go-yaml"
 	"github.com/ramonvermeulen/whosthere/internal/core/paths"
@@ -109,13 +110,9 @@ func writeConfigFile(path string, cfg *Config) error {
 
 // marshalConfigWithComments creates a YAML representation with helpful comments.
 func marshalConfigWithComments(cfg *Config) ([]byte, error) {
-	tcpPorts := ""
-	for _, p := range cfg.PortScanner.TCP {
-		tcpPorts += fmt.Sprintf("    - %d\n", p)
-	}
-	udpPorts := ""
-	for _, p := range cfg.PortScanner.UDP {
-		udpPorts += fmt.Sprintf("    - %d\n", p)
+	tcpPorts := make([]string, len(cfg.PortScanner.TCP))
+	for i, p := range cfg.PortScanner.TCP {
+		tcpPorts[i] = fmt.Sprintf("%d", p)
 	}
 
 	commented := fmt.Sprintf(`# whosthere configuration file
@@ -162,10 +159,8 @@ scanners:
 
 # Port scanner configuration
 port_scanner:
-  tcp:
-%s
-  udp:
-%s
+  timeout: %s
+  tcp: [%s]
 `,
 		cfg.ScanInterval,
 		cfg.ScanDuration,
@@ -175,8 +170,8 @@ port_scanner:
 		cfg.Scanners.MDNS.Enabled,
 		cfg.Scanners.SSDP.Enabled,
 		cfg.Scanners.ARP.Enabled,
-		tcpPorts,
-		udpPorts,
+		cfg.PortScanner.Timeout,
+		strings.Join(tcpPorts, ", "),
 	)
 
 	return []byte(commented), nil

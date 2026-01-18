@@ -18,9 +18,6 @@ type PortScanModalView struct {
 	emit func(events.Event)
 }
 
-// Common ports to scan
-var commonPorts = []int{22, 80, 443, 3389, 8080}
-
 func NewPortScanModalView(emit func(events.Event)) *PortScanModalView {
 	modal := tview.NewModal().
 		SetText("").
@@ -46,7 +43,7 @@ func NewPortScanModalView(emit func(events.Event)) *PortScanModalView {
 		return event
 	})
 
-	theme.RegisterPrimitive(modal)
+	theme.RegisterPrimitive(p.Modal)
 
 	return p
 }
@@ -56,16 +53,15 @@ func (p *PortScanModalView) FocusTarget() tview.Primitive { return p.Modal }
 func (p *PortScanModalView) Render(s state.ReadOnly) {
 	device, ok := s.Selected()
 	if !ok {
-		p.Modal.SetText("No device selected.")
+		p.SetText("No device selected.")
 		return
 	}
 	cfg := s.Config()
-	udpPorts := cfg.PortScanner.UDP
 	tcpPorts := cfg.PortScanner.TCP
 
-	text := fmt.Sprint("The following ports will be scanned:\n\n")
-	text += fmt.Sprintf("UDP: %v\n\n", udpPorts)
-	text += fmt.Sprintf("TCP: %v", tcpPorts)
+	text := "The following ports will be scanned:\n\n"
+	text += fmt.Sprintf("TCP: %v\n\n", tcpPorts)
+	text += "Only scan hosts that you have permission to scan!"
 
 	p.Modal.SetText(text).SetTitle(fmt.Sprintf(" IP: %s ", device.IP))
 }

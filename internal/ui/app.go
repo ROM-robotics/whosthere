@@ -2,7 +2,6 @@ package ui
 
 import (
 	"context"
-	"math/rand"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -36,6 +35,7 @@ type App struct {
 	primitives    []tview.Primitive
 	events        chan events.Event
 	emit          func(events.Event)
+	portScanner   *discovery.PortScanner
 }
 
 func NewApp(cfg *config.Config, ouiDB *oui.Registry, version string) *App {
@@ -47,6 +47,7 @@ func NewApp(cfg *config.Config, ouiDB *oui.Registry, version string) *App {
 		state:       appState,
 		cfg:         cfg,
 		events:      make(chan events.Event, 100),
+		portScanner: discovery.NewPortScanner(100),
 	}
 
 	a.emit = func(e events.Event) {
@@ -207,7 +208,8 @@ func (a *App) RegisterPrimitive(p tview.Primitive) {
 
 // applyTheme applies a theme by name, updates state, applies to primitives, and renders all pages.
 func (a *App) applyTheme(name string) {
-	th := theme.Get(name)
+	a.cfg.Theme.Name = name
+	th := theme.Resolve(&a.cfg.Theme)
 	tview.Styles = th
 	for _, p := range a.primitives {
 		theme.ApplyToPrimitive(p)
@@ -258,8 +260,8 @@ func (a *App) handleEvents() {
 			}
 			a.resetFocus()
 		case events.ThemeSelected:
-			a.state.SetCurrentTheme(event.Name)
 			a.applyTheme(event.Name)
+			a.state.SetCurrentTheme(event.Name)
 		case events.ThemeSaved:
 			_ = theme.SaveToConfig(event.Name, a.cfg)
 		case events.ThemeConfirmed:
@@ -275,16 +277,33 @@ func (a *App) handleEvents() {
 		case events.PortScanStarted:
 			a.state.SetIsPortscanning(true)
 			a.emit(events.HideView{})
-			go func() {
-				// temporary placeholder to mimic "real" scanning durations
-				duration := time.Duration(2+rand.Intn(4)) * time.Second
-				time.Sleep(duration)
-				a.emit(events.PortScanStopped{})
-			}()
+			go a.startPortscan()
 		case events.PortScanStopped:
 			a.state.SetIsPortscanning(false)
 		}
 
 		a.rerenderVisibleViews()
 	}
+}
+
+func (a *App) startPortscan() {
+	device, ok := a.state.Selected()
+	if !ok {
+		a.emit(events.PortScanStopped{})
+		return
+	}
+	ip := device.IP.String()
+	ctx, cancel := context.WithTimeout(context.Background(), a.cfg.ScanDuration)
+	defer cancel()
+
+	device.OpenPorts = map[string][]int{}
+	device.LastPortScan = time.Now()
+
+	// todo(ramon) handle errors properly
+	_ = a.portScanner.Stream(ctx, ip, a.cfg.PortScanner.TCP, a.cfg.PortScanner.Timeout, func(port int) {
+		device.OpenPorts["tcp"] = append(device.OpenPorts["tcp"], port)
+		a.state.UpsertDevice(&device)
+	})
+
+	a.emit(events.PortScanStopped{})
 }

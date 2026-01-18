@@ -10,15 +10,15 @@ const (
 	DefaultSplashEnabled = true
 	DefaultSplashDelay   = 1 * time.Second
 
-	DefaultScanInterval = 20 * time.Second
-	DefaultScanDuration = 10 * time.Second
+	DefaultScanInterval    = 20 * time.Second
+	DefaultScanDuration    = 10 * time.Second
+	DefaultPortScanTimeout = 5 * time.Second
 
 	DefaultThemeName = "default"
 	CustomThemeName  = "custom"
 )
 
 var DefaultTCPPorts = []int{21, 22, 23, 25, 80, 110, 135, 139, 143, 389, 443, 445, 993, 995, 1433, 1521, 3306, 3389, 5432, 5900, 8080, 8443, 9000, 9090, 9200, 9300, 10000, 27017}
-var DefaultUDPPorts = []int{53, 161}
 
 // ThemeConfig selects a theme by name and optionally carries custom color overrides.
 type ThemeConfig struct {
@@ -36,14 +36,10 @@ type ThemeConfig struct {
 	ContrastSecondaryTextColor  string `yaml:"contrast_secondary_text_color"`
 }
 
-// PortScannerConfig captures runtime configuration values loaded from the YAML config file.
-type Config struct {
-	ScanInterval time.Duration     `yaml:"scan_interval"`
-	ScanDuration time.Duration     `yaml:"scan_duration"`
-	Splash       SplashConfig      `yaml:"splash"`
-	Theme        ThemeConfig       `yaml:"theme"`
-	Scanners     ScannerConfig     `yaml:"scanners"`
-	PortScanner  PortScannerConfig `yaml:"port_scanner"`
+// PortScannerConfig defines TCP ports to scan.
+type PortScannerConfig struct {
+	TCP     []int         `yaml:"tcp"`
+	Timeout time.Duration `yaml:"timeout"`
 }
 
 // SplashConfig controls the splash screen visibility and timing.
@@ -64,13 +60,17 @@ type ScannerToggle struct {
 	Enabled bool `yaml:"enabled"`
 }
 
-// PortScannerConfig defines TCP and UDP ports to scan.
-type PortScannerConfig struct {
-	TCP []int `yaml:"tcp"`
-	UDP []int `yaml:"udp"`
+// Config captures all configurable parameters for the application.
+type Config struct {
+	ScanInterval time.Duration     `yaml:"scan_interval"`
+	ScanDuration time.Duration     `yaml:"scan_duration"`
+	Splash       SplashConfig      `yaml:"splash"`
+	Theme        ThemeConfig       `yaml:"theme"`
+	Scanners     ScannerConfig     `yaml:"scanners"`
+	PortScanner  PortScannerConfig `yaml:"port_scanner"`
 }
 
-// DefaultConfig builds a PortScannerConfig pre-populated with baked-in defaults.
+// DefaultConfig builds a Config pre-populated with baked-in defaults.
 func DefaultConfig() *Config {
 	return &Config{
 		ScanInterval: DefaultScanInterval,
@@ -81,7 +81,7 @@ func DefaultConfig() *Config {
 		},
 		Theme:       ThemeConfig{Name: DefaultThemeName},
 		Scanners:    ScannerConfig{MDNS: ScannerToggle{Enabled: true}, SSDP: ScannerToggle{Enabled: true}, ARP: ScannerToggle{Enabled: true}},
-		PortScanner: PortScannerConfig{TCP: DefaultTCPPorts, UDP: DefaultUDPPorts},
+		PortScanner: PortScannerConfig{TCP: DefaultTCPPorts, Timeout: DefaultPortScanTimeout},
 	}
 }
 
@@ -120,8 +120,8 @@ func (c *Config) validateAndNormalize() error {
 		c.PortScanner.TCP = DefaultTCPPorts
 	}
 
-	if len(c.PortScanner.UDP) == 0 {
-		c.PortScanner.UDP = DefaultUDPPorts
+	if c.PortScanner.Timeout <= 0 {
+		c.PortScanner.Timeout = DefaultPortScanTimeout
 	}
 
 	if len(errs) > 0 {

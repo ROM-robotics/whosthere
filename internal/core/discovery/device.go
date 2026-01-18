@@ -29,14 +29,14 @@ type Device struct {
 	FirstSeen    time.Time           // first time any scanner saw the device
 	LastSeen     time.Time           // last time any scanner saw the device
 	ExtraData    map[string]string   // additional key/value metadata discovered from protocols
-	OpenPorts    []int               // list of open ports from port scan
+	OpenPorts    map[string][]int    // protocol -> list of open ports
 	LastPortScan time.Time           // last time port scan was performed
 }
 
 // NewDevice builds a Device with initialized maps and current timestamp as first/last seen.
 func NewDevice(ip net.IP) Device {
 	now := time.Now()
-	return Device{IP: ip, Services: map[string]int{}, Sources: map[string]struct{}{}, FirstSeen: now, LastSeen: now, ExtraData: map[string]string{}}
+	return Device{IP: ip, Services: map[string]int{}, Sources: map[string]struct{}{}, FirstSeen: now, LastSeen: now, ExtraData: map[string]string{}, OpenPorts: map[string][]int{}}
 }
 
 // Merge merges fields into an existing Device
@@ -88,8 +88,27 @@ func (d *Device) Merge(other *Device) {
 	if other.LastSeen.After(d.LastSeen) {
 		d.LastSeen = other.LastSeen
 	}
+	if d.OpenPorts == nil {
+		d.OpenPorts = map[string][]int{}
+	}
+	for protocol, ports := range other.OpenPorts {
+		if _, ok := d.OpenPorts[protocol]; !ok {
+			d.OpenPorts[protocol] = make([]int, len(ports))
+			copy(d.OpenPorts[protocol], ports)
+		} else {
+			portSet := make(map[int]bool)
+			for _, p := range d.OpenPorts[protocol] {
+				portSet[p] = true
+			}
+			for _, p := range ports {
+				if !portSet[p] {
+					d.OpenPorts[protocol] = append(d.OpenPorts[protocol], p)
+					portSet[p] = true
+				}
+			}
+		}
+	}
 	if other.LastPortScan.After(d.LastPortScan) {
-		d.OpenPorts = other.OpenPorts
 		d.LastPortScan = other.LastPortScan
 	}
 }

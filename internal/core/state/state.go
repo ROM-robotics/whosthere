@@ -29,7 +29,6 @@ type AppState struct {
 
 	devices        map[string]discovery.Device
 	selectedIP     string
-	currentTheme   string
 	previousTheme  string
 	version        string
 	filterPattern  string
@@ -49,7 +48,6 @@ func NewAppState(cfg *config.Config, version string) *AppState {
 	if cfg != nil && cfg.Theme.Name != "" {
 		themeName = cfg.Theme.Name
 	}
-	s.currentTheme = themeName
 	s.previousTheme = themeName
 
 	return s
@@ -118,14 +116,14 @@ func (s *AppState) SelectedIP() string {
 func (s *AppState) SetCurrentTheme(theme string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.currentTheme = theme
+	s.cfg.Theme.Name = theme
 }
 
 // CurrentTheme returns the current theme.
 func (s *AppState) CurrentTheme() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.currentTheme
+	return s.cfg.Theme.Name
 }
 
 // PreviousTheme returns the previous theme.

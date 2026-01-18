@@ -2,6 +2,7 @@ package views
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/gdamore/tcell/v2"
@@ -33,7 +34,7 @@ func NewDetailView(emit func(events.Event), queue func(f func())) *DetailView {
 
 	info := tview.NewTextView().SetDynamicColors(true).SetWrap(true)
 	info.SetBorder(true).
-		SetTitle("Details").
+		SetTitle(" Details ").
 		SetTitleColor(tview.Styles.TitleColor).
 		SetBorderColor(tview.Styles.BorderColor).
 		SetBackgroundColor(tview.Styles.PrimitiveBackgroundColor)
@@ -120,11 +121,18 @@ func (d *DetailView) Render(s state.ReadOnly) {
 	if len(device.OpenPorts) == 0 {
 		_, _ = fmt.Fprintln(d.info, "  (none)")
 	} else {
-		for _, port := range device.OpenPorts {
-			_, _ = fmt.Fprintf(d.info, "  %device\n", port)
+		for _, key := range utils.SortedKeys(device.OpenPorts) {
+			ports := device.OpenPorts[key]
+			if len(ports) > 0 {
+				_, _ = fmt.Fprintf(d.info, "  [%s::b]%s:[-::-]\n", labelColor, strings.ToUpper(key))
+				for _, port := range ports {
+					_, _ = fmt.Fprintf(d.info, "    %d\n", port)
+				}
+				_, _ = fmt.Fprintf(d.info, "\n")
+			}
 		}
 		if !device.LastPortScan.IsZero() {
-			_, _ = fmt.Fprintf(d.info, "\n[%s::b]Last portscan:[-::-] %s\n", labelColor, device.LastPortScan.Format("2006-01-02 15:04:05"))
+			_, _ = fmt.Fprintf(d.info, "[%s::b]Last portscan:[-::-] %s\n", labelColor, device.LastPortScan.Format("2006-01-02 15:04:05"))
 		}
 	}
 
@@ -140,13 +148,14 @@ func (d *DetailView) Render(s state.ReadOnly) {
 	d.header.Render(s)
 	d.statusBar.Render(s)
 
-	if s.IsPortscanning() {
+	switch {
+	case s.IsPortscanning():
 		d.statusBar.Spinner().SetSuffix(" Port scanning...")
 		d.statusBar.Spinner().Start(d.queue)
-	} else if s.IsDiscovering() {
+	case s.IsDiscovering():
 		d.statusBar.Spinner().SetSuffix(" Discovering Devices...")
 		d.statusBar.Spinner().Start(d.queue)
-	} else {
+	default:
 		d.statusBar.Spinner().Stop(d.queue)
 	}
 }

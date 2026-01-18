@@ -1,6 +1,8 @@
 package components
 
 import (
+	"fmt"
+
 	"github.com/gdamore/tcell/v2"
 	"github.com/ramonvermeulen/whosthere/internal/core/state"
 	"github.com/ramonvermeulen/whosthere/internal/ui/events"
@@ -78,7 +80,7 @@ func (tp *ThemePicker) setupInputHandling() {
 func (tp *ThemePicker) Render(s state.ReadOnly) {
 	tp.Clear()
 	tp.SetBorder(true).
-		SetTitle(" Theme Picker ").
+		SetTitle(fmt.Sprintf(" Theme Picker (%v) ", len(tp.themes))).
 		SetTitleAlign(tview.AlignCenter).
 		SetTitleColor(tview.Styles.TitleColor).
 		SetBorderColor(tview.Styles.BorderColor).
@@ -91,8 +93,11 @@ func (tp *ThemePicker) Render(s state.ReadOnly) {
 
 	for i, themeName := range tp.themes {
 		displayName := themeName
+		if themeName == "custom" {
+			displayName = "custom (apply overrides from config)"
+		}
 		if themeName == currentTheme {
-			displayName = "✓ " + themeName
+			displayName = "✓ " + displayName
 			currentIndex = i
 		}
 		name := themeName
