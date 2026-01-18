@@ -30,7 +30,7 @@ func (s *Scanner) Scan(ctx context.Context, out chan<- discovery.Device) error {
 	}
 
 	if s.Sweeper != nil {
-		s.Sweeper.Start(context.Background())
+		s.Sweeper.Start(ctx)
 	}
 
 	return s.readARPCache(ctx, out)

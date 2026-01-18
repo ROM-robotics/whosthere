@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"context"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 
 	"github.com/ramonvermeulen/whosthere/internal/core/config"
@@ -71,6 +73,15 @@ func run(*cobra.Command, []string) error {
 		zap.L().Warn("failed to initialize OUI database; manufacturer lookups will be disabled", zap.Error(err))
 	}
 
+	if whosthereFlags.PprofPort != "" {
+		go func() {
+			zap.L().Info("starting pprof server", zap.String("port", whosthereFlags.PprofPort))
+			if err := http.ListenAndServe(":"+whosthereFlags.PprofPort, nil); err != nil {
+				zap.L().Error("pprof server failed", zap.Error(err))
+			}
+		}()
+	}
+
 	app := ui.NewApp(cfg, ouiDB, version.Version)
 
 	if err := app.Run(); err != nil {
@@ -87,5 +98,11 @@ func initWhosthereFlags() {
 		"config-file", "c",
 		"",
 		"Path to config file.",
+	)
+	rootCmd.Flags().StringVar(
+		&whosthereFlags.PprofPort,
+		"pprof-port",
+		"",
+		"Port for pprof HTTP server for debugging/profiling purposes (e.g., 6060)",
 	)
 }
