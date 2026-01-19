@@ -20,17 +20,17 @@ import (
 
 // Device represents a discovered network device aggregated from multiple scanners.
 type Device struct {
-	IP           net.IP              // Primary IP address (identity key)
-	MAC          string              // MAC address of the device
-	DisplayName  string              // Most user-friendly name discovered
-	Manufacturer string              // Vendor from OUI table
-	Services     map[string]int      // service name -> port (or 0 if unknown)
-	Sources      map[string]struct{} // set of scanners that contributed info
-	FirstSeen    time.Time           // first time any scanner saw the device
-	LastSeen     time.Time           // last time any scanner saw the device
-	ExtraData    map[string]string   // additional key/value metadata discovered from protocols
-	OpenPorts    map[string][]int    // protocol -> list of open ports
-	LastPortScan time.Time           // last time port scan was performed
+	IP           net.IP              `json:"ip"`           // Primary IP address (identity key)
+	MAC          string              `json:"mac"`          // MAC address of the device
+	DisplayName  string              `json:"displayName"`  // Most user-friendly name discovered
+	Manufacturer string              `json:"manufacturer"` // Vendor from OUI table
+	Services     map[string]int      `json:"services"`     // service name -> port (or 0 if unknown)
+	Sources      map[string]struct{} `json:"sources"`      // set of scanners that contributed info
+	FirstSeen    time.Time           `json:"firstSeen"`    // first time any scanner saw the device
+	LastSeen     time.Time           `json:"lastSeen"`     // last time any scanner saw the device
+	ExtraData    map[string]string   `json:"extraData"`    // additional key/value metadata discovered from protocols
+	OpenPorts    map[string][]int    `json:"-"`            // protocol -> list of open ports
+	LastPortScan time.Time           `json:"-"`            // last time port scan was performed
 }
 
 // NewDevice builds a Device with initialized maps and current timestamp as first/last seen.

@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/ramonvermeulen/whosthere/internal/version"
+	"github.com/ramonvermeulen/whosthere/internal/core/version"
 	"github.com/spf13/cobra"
 )
 

@@ -2,7 +2,7 @@ package main
 
 import (
 	"github.com/ramonvermeulen/whosthere/cmd"
-	"github.com/ramonvermeulen/whosthere/internal/version"
+	"github.com/ramonvermeulen/whosthere/internal/core/version"
 )
 
 // These are intended to be set by GoReleaser (or other build tooling) via -ldflags.

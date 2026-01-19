@@ -3,7 +3,6 @@ package components
 import (
 	"fmt"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 
@@ -233,7 +232,6 @@ func (dt *DeviceTable) buildRows() []tableRow {
 		}
 		rows = append(rows, row)
 	}
-	sort.Slice(rows, func(i, j int) bool { return rows[i].ip < rows[j].ip })
 	return rows
 }
 

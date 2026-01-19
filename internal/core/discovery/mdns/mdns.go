@@ -177,7 +177,7 @@ func (ss *scanSession) handleDiscoveredServiceType(serviceType string) {
 	}
 
 	ss.queriedServiceTypes[serviceType] = true
-	ss.log.Info("Discovered new service type", zap.String("type", serviceType))
+	ss.log.Debug("Discovered new service type", zap.String("type", serviceType))
 
 	if err := ss.queryService(serviceType); err != nil {
 		ss.log.Warn("Failed to query service",

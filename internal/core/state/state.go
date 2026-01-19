@@ -1,6 +1,7 @@
 package state
 
 import (
+	"sort"
 	"sync"
 
 	"github.com/ramonvermeulen/whosthere/internal/core/config"
@@ -20,6 +21,7 @@ type ReadOnly interface {
 	IsDiscovering() bool
 	IsPortscanning() bool
 	Config() config.Config
+	GetDevice(ip string) (discovery.Device, bool)
 }
 
 // AppState holds application-level state shared across views and
@@ -83,6 +85,7 @@ func (s *AppState) DevicesSnapshot() []discovery.Device {
 	for _, d := range s.devices {
 		out = append(out, d)
 	}
+	sort.Slice(out, func(i, j int) bool { return out[i].IP.String() < out[j].IP.String() })
 	return out
 }
 
@@ -206,4 +209,13 @@ func (s *AppState) Config() config.Config {
 // ReadOnly returns a read-only interface to the state.
 func (s *AppState) ReadOnly() ReadOnly {
 	return s
+}
+
+// GetDevice retrieves a device by IP address.
+func (s *AppState) GetDevice(ip string) (discovery.Device, bool) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	device, ok := s.devices[ip]
+	return device, ok
 }
