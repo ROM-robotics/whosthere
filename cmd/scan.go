@@ -57,8 +57,7 @@ Examples:
 		ctx, cancel := context.WithTimeout(ctx, scanDuration)
 		defer cancel()
 
-		devices, err := eng.Stream(ctx, func(d discovery.Device) {
-		})
+		devices, err := eng.Stream(ctx, func(_ *discovery.Device) {})
 		if err != nil {
 			return err
 		}

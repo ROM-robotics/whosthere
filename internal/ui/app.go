@@ -23,8 +23,6 @@ const (
 	refreshInterval = 1 * time.Second
 )
 
-// todo solve bug when you open ctrl + t too soon after starting app
-
 // App represents the main TUI application.
 type App struct {
 	*tview.Application
@@ -38,6 +36,7 @@ type App struct {
 	events        chan events.Event
 	emit          func(events.Event)
 	portScanner   *discovery.PortScanner
+	isReady       bool
 }
 
 func NewApp(cfg *config.Config, ouiDB *oui.Registry, version string) (*App, error) {
@@ -90,7 +89,10 @@ func (a *App) Run() error {
 			}()
 			time.Sleep(delay)
 			a.emit(events.NavigateTo{Route: routes.RouteDashboard})
+			a.isReady = true
 		}(a.cfg.Splash.Delay)
+	} else {
+		a.isReady = true
 	}
 
 	if a.engine != nil && a.cfg != nil {
@@ -135,6 +137,10 @@ func (a *App) setupEngine(cfg *config.Config, ouiDB *oui.Registry) error {
 }
 
 func (a *App) handleGlobalKeys(event *tcell.EventKey) *tcell.EventKey {
+	// if the app isn't fully started, but it can already listen to key events this can cause a UI bug
+	if !a.isReady {
+		return event
+	}
 	switch event.Key() {
 	case tcell.KeyCtrlT:
 		a.emit(events.NavigateTo{Route: routes.RouteThemePicker, Overlay: true})
@@ -190,8 +196,8 @@ func (a *App) performScan() {
 	a.emit(events.DiscoveryStarted{})
 
 	ctx, cancel := context.WithTimeout(context.Background(), a.cfg.ScanDuration)
-	_, _ = a.engine.Stream(ctx, func(d discovery.Device) {
-		a.state.UpsertDevice(&d)
+	_, _ = a.engine.Stream(ctx, func(d *discovery.Device) {
+		a.state.UpsertDevice(d)
 	})
 	cancel()
 

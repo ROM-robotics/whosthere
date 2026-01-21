@@ -12,7 +12,16 @@ LDFLAGS := -s -w \
 	-X github.com/ramonvermeulen/whosthere/internal/version.Version=$(GIT_TAG) \
 	-X github.com/ramonvermeulen/whosthere/internal/version.Commit=$(GIT_COMMIT)
 
-default: fmt lint install test
+# TODO: add cross-platform deps support
+deps:
+	go mod tidy
+	pipx install mdformat
+	pipx inject mdformat mdformat-gfm
+	go install github.com/shurcooL/markdownfmt@latest
+	brew install golangci-lint
+	brew upgrade golangci-lint
+
+default: deps fmt lint install test
 
 build:
 	go build -ldflags '$(LDFLAGS)' -o $(APP_NAME) .
@@ -22,11 +31,13 @@ install: build
 
 lint:
 	golangci-lint run
+	mdformat --check .
 
 fmt:
 	gofmt -s -w -e .
+	mdformat .
 
 test:
 	go test -v -cover -race -timeout=120s -parallel=10 ./...
 
-.PHONY: fmt lint test build install
+.PHONY: fmt lint test build install deps

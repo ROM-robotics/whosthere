@@ -131,8 +131,10 @@ splash:
 
 # Theme configuration
 theme:
-  # Built-in themes: default, dracula, nord, solarized-dark, solarized-light, monokai, gruvbox
-  # Set name to "custom" to use custom colors below
+  # Configure the theme to use for the TUI
+  # See the complete list of available themes at https://github.com/ramonvermeulen/whosthere/tree/main/internal/ui/theme/theme.go
+  # Set name to "custom" to use the custom colors below
+  # For any color that is not configured it will take the default theme value as fallback
   name: %s
   
   # Custom theme colors (uncomment and set name: custom to use)
@@ -161,6 +163,9 @@ scanners:
 port_scanner:
   timeout: %s
   tcp: [%s]
+
+# Uncomment the next line to configure a specific network interface - uses OS default if not set
+# network_interface: eth0
 `,
 		cfg.ScanInterval,
 		cfg.ScanDuration,

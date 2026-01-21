@@ -63,8 +63,8 @@ func runDaemon(cmd *cobra.Command, _ []string) error {
 
 	for {
 		zap.L().Info("starting scan cycle")
-		_, err := eng.Stream(ctx, func(d discovery.Device) {
-			appState.UpsertDevice(&d)
+		_, err := eng.Stream(ctx, func(d *discovery.Device) {
+			appState.UpsertDevice(d)
 		})
 		if err != nil {
 			zap.L().Error("scan failed", zap.Error(err))

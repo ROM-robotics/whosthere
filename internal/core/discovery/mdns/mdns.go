@@ -69,7 +69,7 @@ func (ss *scanSession) setupConnection() error {
 
 	p := ipv4.NewPacketConn(conn)
 	if err := p.JoinGroup(ss.iface.Interface, addr); err != nil {
-		conn.Close()
+		_ = conn.Close()
 		return fmt.Errorf("join multicast group: %w", err)
 	}
 

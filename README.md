@@ -1,81 +1,114 @@
 # whosthere
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/ramonvermeulen/whosthere)](https://goreportcard.com/report/github.com/ramonvermeulen/whosthere) [![Go Version](https://img.shields.io/github/go-mod/go-version/ramonvermeulen/whosthere)](https://go.dev/doc/devel/release) [![License](https://img.shields.io/github/license/ramonvermeulen/whosthere)](LICENSE)
+
+Local network discovery tool with a modern Terminal User Interface (TUI) written in Go.
+Discover, explore, and understand your Local Area Network in an intuitive way. It performs
+**privilege-less, concurrent scans** using ARP, multicast DNS, and TCP/UDP connections to
+quickly find and identify devices on your Local Area Network.
+
+## Features
+
+- **Modern TUI:** Navigate and explore discovered devices intuitively.
+- **Fast & Concurrent:** Leverages multiple discovery methods simultaneously.
+- **No Elevated Privileges Required:** Runs entirely in user-space.
+- **Device Enrichment:** Uses [**OUI**](https://standards-oui.ieee.org/) lookup to show device manufacturers.
+- **Integrated Port Scanner:** Optional service discovery on found hosts.
+- **Pluggable Architecture:** Extensible with custom scanners.
+- **Daemon Mode with HTTP API:** Run in the background and integrate with other tools.
+- **Theming & Configuration:** Personalize the look and behavior via YAML configuration.
+
 Knock knock.. Who's there? 🚪
 
-Whosthere is a TUI network scanner written in Go that quickly discovers devices and services on your local network.
-It's built for fast, concurrent scans and designed to run without `sudo` by using normal user‑space network requests (
-e.g., TCP/UDP connects and multicast queries).
-Pluggable scanners run concurrently and feed a central engine that merges results and enriches device manufacturer
-information via an [**OUI registry**](https://standards-oui.ieee.org/).
-
-I am by no means a network expert, and mainly built this application to learn more about networking and concurrency in
-Go.
-Feel free to raise feature requests, open issues, or contribute code! I will try my best to review and merge
-contributions.
+![demo gif](<>)
 
 ## Installation
 
-You can download precompiled binaries for Linux and macOS from the [releases page](tbd), or simply install via your OS
-package manager if available.
-
-TODO(ramon): start with install script instead, later on introduce all package managers
-
-### Homebrew (macOS/Linux)
-
 ```bash
+brew tap ramonvermeulen/whosthere
 brew install whosthere
 ```
 
-### apt (Debian/Ubuntu)
+Or with Go:
 
 ```bash
-apt install whosthere
+go install github.com/ramonvermeulen/whosthere@latest
 ```
 
-### yum (Fedora/CentOS)
+Or build from source:
 
 ```bash
-yum install whosthere
+git clone github.com/ramonvermeulen/whosthere.git
+cd whosthere
+make build
 ```
 
-### pacman (Arch Linux)
+## Usage
+
+Run the TUI for interactive discovery:
 
 ```bash
-pacman -S whosthere
+whosthere
 ```
 
-### From source
-
-Make sure you have [Go](https://golang.org/dl/) installed.
+Run as a daemon with HTTP API:
 
 ```bash
-go install github.com/yourusername/whosthere@latest
+whosthere daemon --port 8080
 ```
+
+Additional command line options can be found by running:
+
+```bash
+whosthere --help
+```
+
+## Key bindings (TUI)
+
+| Key                | Action                    |
+| ------------------ | ------------------------- |
+| `/`                | Start regex search        |
+| `k`                | Up                        |
+| `j`                | Down                      |
+| `g`                | Go to top                 |
+| `G`                | Go to bottom              |
+| `enter`            | Show device details       |
+| `CTRL+t`           | Toggle theme selector     |
+| `CTRL+c`           | Stop application          |
+| `ESC`              | Clear search / Go back    |
+| `p` (details view) | Start port scan on device |
+| `tab` (modal view) | Switch button selection   |
+
+## Environment Variables
+
+| Variable           | Description                                                                                                                                                                                                                                                 |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `WHOSTHERE_CONFIG` | Path to the configuration file. Defaults to `$XDG_CONFIG_HOME/whosthere/config.yaml` or `~/.config/whosthere/config.yaml` if the [**XDG Base Directory**](https://specifications.freedesktop.org/basedir/latest/#basics) environment variables are not set. |
+| `WHOSTHERE_LOG`    | Set the log level (e.g., `debug`, `info`, `warn`, `error`). Defaults to `info`.                                                                                                                                                                             |
 
 ## Configuration
 
-A lot of behavior within whosthere can be configured to your liking. By default, whosthere will try to look for a
-configuration
-file at `$XDG_CONFIG_HOME/whosthere/config.yaml`, or `~/.config/whosthere/config.yaml` if the [**XDG Base Directory
-**](https://specifications.freedesktop.org/basedir/latest/#basics)
-environment variables are not set. If no configuration file is found, whosthere will create one with default values on
-first run.
-The location of the configuration file can be overridden by providing the `--config` (`-c`) flag when starting
-whosthere,
-or the `WHOSTHERE_CONFIG` environment variable.
-
-Here is an example configuration file with all available options and their default values:
-
 ```yaml
-scan_interval: 20s # how often a scan gets triggered
-scan_duration: 10s # maximum duration of a scan
+# How often to run discovery scans
+scan_interval: 10s
+
+# Maximum duration for each scan
+scan_duration: 5s
+
+# Splash screen configuration
 splash:
-  enabled: true # show splash screen on startup
-  delay: 1s     # delay for the splash screen
+  enabled: true
+  delay: 1s
+
+# Theme configuration
 theme:
-  # pick a built-in theme by name; unknown names fall back to "default"
+  # Configure the theme to use for the TUI, complete list of available themes at:
+  # https://github.com/ramonvermeulen/whosthere/tree/main/internal/ui/theme/theme.go
+  # Set name to "custom" to use the custom colors below
+  # For any color that is not configured it will take the default theme value as fallback
   name: default
-  # default palette (uncomment and set name: custom to tweak)
+
+  # Custom theme colors (uncomment and set name: custom to use)
   # primitive_background_color: "#000a1a"
   # contrast_background_color: "#001a33"
   # more_contrast_background_color: "#003366"
@@ -87,6 +120,8 @@ theme:
   # tertiary_text_color: "#ffaa00"
   # inverse_text_color: "#000a1a"
   # contrast_secondary_text_color: "#88ddff"
+
+# Scanner configuration
 scanners:
   mdns:
     enabled: true
@@ -94,33 +129,18 @@ scanners:
     enabled: true
   arp:
     enabled: true
+
+# Port scanner configuration
+port_scanner:
+  timeout: 5s
+  tcp: [21, 22, 23, 25, 80, 110, 135, 139, 143, 389, 443, 445, 993, 995, 1433, 1521, 3306, 3389, 5432, 5900, 8080, 8443, 9000, 9090, 9200, 9300, 10000, 27017]
+
+# Uncomment the next line to configure a specific network interface - uses OS default if not set
+# network_interface: lo0
 ```
 
 ## Logging
 
-Whosthere supports logging to a file for debugging and monitoring purposes. By default, logs are written to
-`$XDG_STATE_HOME/whosthere/whosthere.log`, or `~/.local/state/whosthere/whosthere.log` if the [**XDG Base Directory
-**](https://specifications.freedesktop.org/basedir/latest/#basics)
-environment variables are not set. The log level is set to `info` by default, but can be changed via the `WHOSTHERE_LOG`
-environment variable.
-
-For example, to set the log level to `debug`, you can start whosthere with the following command:
-
-```bash
-WHOSTHERE_LOG=debug whosthere
-```
-
-## Platforms
-
-This application has been tested on Linux and macOS. Windows support is not currently available, but contributions
-to add Windows compatibility are welcome!
-
-## Engine
-
-### Scanners
-
-...
-
-### OUI Table
-
-https://standards-oui.ieee.org/oui/oui.csv
+Logs are written to `$XDG_STATE_HOME/whosthere/app.log` or `~/.local/state/whosthere/app.log` if the 
+[**XDG Base Directory**](https://specifications.freedesktop.org/basedir/latest/#basics) environment variables 
+are not set. When not running in TUI mode, logs are also written to standard output.

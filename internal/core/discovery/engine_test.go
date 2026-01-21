@@ -70,7 +70,7 @@ func TestEngineStreamMergeAndDedup(t *testing.T) {
 
 	var got []Device
 	ctx := context.Background()
-	devices, err := eng.Stream(ctx, func(d Device) { got = append(got, d) })
+	devices, err := eng.Stream(ctx, func(d *Device) { got = append(got, *d) })
 	if err != nil {
 		t.Fatalf("Stream returned error: %v", err)
 	}

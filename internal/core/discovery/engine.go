@@ -67,7 +67,7 @@ func (e *Engine) fillManufacturerIfEmpty(d *Device) {
 }
 
 // Stream runs scanners and invokes onDevice for each incremental merged device observed.
-func (e *Engine) Stream(ctx context.Context, onDevice func(Device)) ([]Device, error) {
+func (e *Engine) Stream(ctx context.Context, onDevice func(*Device)) ([]Device, error) {
 	ctx, cancel := context.WithTimeout(ctx, e.Timeout)
 	defer cancel()
 
@@ -102,30 +102,30 @@ func (e *Engine) Stream(ctx context.Context, onDevice func(Device)) ([]Device, e
 				// channel closed, all scanners are done
 				return mapToSlice(devices), nil
 			}
-			e.handleDevice(d, devices, onDevice)
+			e.handleDevice(&d, devices, onDevice)
 		}
 	}
 }
 
 // handleDevice processes a discovered device, merging with existing or adding new.
-func (e *Engine) handleDevice(d Device, devices map[string]*Device, onDevice func(Device)) {
+func (e *Engine) handleDevice(d *Device, devices map[string]*Device, onDevice func(*Device)) {
 	if d.IP == nil || d.IP.String() == "" {
 		return
 	}
 	key := d.IP.String()
 	if existing, found := devices[key]; found {
-		existing.Merge(&d)
+		existing.Merge(d)
 		e.fillManufacturerIfEmpty(existing)
 		if onDevice != nil {
-			onDevice(*existing)
+			onDevice(existing)
 		}
 	} else {
 		dev := d
 		if dev.FirstSeen.IsZero() {
 			dev.FirstSeen = time.Now()
 		}
-		e.fillManufacturerIfEmpty(&dev)
-		devices[key] = &dev
+		e.fillManufacturerIfEmpty(dev)
+		devices[key] = dev
 		if onDevice != nil {
 			onDevice(dev)
 		}
