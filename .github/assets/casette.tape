@@ -8,6 +8,8 @@ Output demo.gif
 Set FontSize 19
 Set Width 1920
 Set Height 1080
+Set WindowBar Colorful
+Set BorderRadius 10
 Set CursorBlink false
 Set WindowBar Colorful
 Set Margin 0

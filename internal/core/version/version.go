@@ -29,5 +29,9 @@ func Fprint(w io.Writer) {
 	_, _ = fmt.Fprintf(w, "%sOS:%s         %s/%s\n", cyan, reset, runtime.GOOS, runtime.GOARCH)
 	_, _ = fmt.Fprintf(w, "%sVersion:%s    %s\n", cyan, reset, Version)
 	_, _ = fmt.Fprintf(w, "%sCommit:%s     %s\n", cyan, reset, Commit)
-	_, _ = fmt.Fprintf(w, "%sDate:%s       %s\n", cyan, reset, Date)
+	dateStr := Date
+	if len(Date) >= 10 {
+		dateStr = Date[:10]
+	}
+	_, _ = fmt.Fprintf(w, "%sDate:%s       %s\n", cyan, reset, dateStr)
 }
