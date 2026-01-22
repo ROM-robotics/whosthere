@@ -6,15 +6,17 @@
 [![GitHub Release](https://img.shields.io/github/v/release/ramonvermeulen/whosthere)](https://github.com/ramonvermeulen/whosthere/releases)
 [![GitHub Repo stars](https://img.shields.io/github/stars/ramonvermeulen/whosthere)](https://github.com/ramonvermeulen/whosthere)
 
-Local area network discovery tool with a modern Terminal User Interface (TUI) written in Go.
+Local Area Network discovery tool with a modern Terminal User Interface (TUI) written in Go. 
 Discover, explore, and understand your LAN in an intuitive way.
 
-Whosthere performs **privilege-less, concurrent scans** using [**mDNS**](https://en.wikipedia.org/wiki/Multicast_DNS) and
-[**SSDP**](https://en.wikipedia.org/wiki/Simple_Service_Discovery_Protocol) scanners. Aside from that it sweeps
-the local subnet with TCP/UDP connections and reads out the [**ARP Cache**](https://en.wikipedia.org/wiki/ARP_cache) to
-quickly find and identify devices on your Local Area Network. This is a technique that under-the-hood triggers ARP
-requests to all IP addresses in the network interface it's subnet, without requiring elevated privileges.
-All discovered devices are enhanced with [**OUI**](https://standards-oui.ieee.org/) lookup to show manufacturers if available.
+Whosthere performs **unprivileged, concurrent scans** using [**mDNS**](https://en.wikipedia.org/wiki/Multicast_DNS)
+and [**SSDP**](https://en.wikipedia.org/wiki/Simple_Service_Discovery_Protocol) scanners. Additionally, it sweeps the 
+local subnet by attempting TCP/UDP connections to trigger ARP resolution, then reads the 
+[**ARP cache**](https://en.wikipedia.org/wiki/Address_Resolution_Protocol) to identify devices on your Local Area Network. 
+This technique populates the ARP cache without requiring elevated privileges. All discovered devices are enhanced with 
+[**OUI**](https://standards-oui.ieee.org/) lookups to display manufacturers when available.
+
+Whosthere provides a friendly, intuitive way to answer the question every network administrator asks: "Who's there on my network?"
 
 ![demo gif](.github/assets/demo.gif)
 
@@ -172,15 +174,15 @@ port_scanner:
 When running Whosthere in daemon mode, it exposes an very simplistic HTTP API with the following endpoints:
 
 | Method | Endpoint       | Description                        |
-| ------ | -------------- | ---------------------------------- |
+| ------ |----------------| ---------------------------------- |
 | GET    | `/devices`     | Get list of all discovered devices |
 | GET    | `/device/{ip}` | Get details of a specific device   |
-| GET    | `/healtz`      | Health check                       |
+| GET    | `/health`      | Health check                       |
 
 ## Themes
 
 Theme can be configured via the configuration file, or at runtime via the `CTRL+t` key binding.
-A complete list of available themes can be found [**here**](<>), feel free to open a PR to add your own theme!
+A complete list of available themes can be found [**here**](https://github.com/ramonvermeulen/whosthere/blob/main/internal/ui/theme/theme.go), feel free to open a PR to add your own theme!
 
 Example of theme configuration:
 

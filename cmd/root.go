@@ -4,6 +4,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"strings"
 
 	"github.com/ramonvermeulen/whosthere/internal/core/config"
 	"github.com/ramonvermeulen/whosthere/internal/core/version"
@@ -15,16 +16,17 @@ import (
 const (
 	appName      = "whosthere"
 	shortAppDesc = "Local network discovery tool with a modern TUI interface."
-	longAppDesc  = "knock Knock..\n" + cyan + `
+	longAppDesc  = cyan + "whosthere [global options] <subcommand> [args]\n" + reset + `
+Knock Knock..
           _               _   _                   ___
 __      _| |__   ___  ___| |_| |__   ___ _ __ ___/ _ \
 \ \ /\ / / '_ \ / _ \/ __| __| '_ \ / _ \ '__/ _ \// /
- \ V  V /| | | | (_) \__ \ |_| | | |  __/ | |  __/ \/ 
-  \_/\_/ |_| |_|\___/|___/\__|_| |_|\___|_|  \___| () ` + reset + `
+ \ V  V /| | | | (_) \__ \ |_| | | |  __/ | |  __/ \/
+  \_/\_/ |_| |_|\___/|___/\__|_| |_|\___|_|  \___| () 
 
 
-Local network discovery tool with a modern TUI interface written in Go.
-Discover, explore, and understand your Local Area Network in an intuitive way.
+Local Area Network discovery tool with a modern Terminal User Interface (TUI) written in Go. 
+Discover, explore, and understand your LAN in an intuitive way.
 
 Knock Knock... who's there? 🚪`
 	cyan  = "\033[36m"
@@ -47,6 +49,7 @@ var (
 
 func init() {
 	initWhosthereFlags()
+	setCobraUsageTemplate()
 }
 
 // Execute is the entrypoint for the CLI application
@@ -110,4 +113,16 @@ func initWhosthereFlags() {
 		"",
 		"Port for pprof HTTP server for debugging and profiling purposes (e.g., 6060)",
 	)
+}
+
+func setCobraUsageTemplate() {
+	cobra.AddTemplateFunc("StyleHeading", func(s string) string { return cyan + s + reset })
+	usageTemplate := rootCmd.UsageTemplate()
+	usageTemplate = strings.NewReplacer(
+		`Usage:`, `{{StyleHeading "Usage:"}}`,
+		`Available Commands:`, `{{StyleHeading "Available Commands:"}}`,
+		`Flags:`, `{{StyleHeading "Flags:"}}`,
+		`Global Flags:`, `{{StyleHeading "Global Flags:"}}`,
+	).Replace(usageTemplate)
+	rootCmd.SetUsageTemplate(usageTemplate)
 }
