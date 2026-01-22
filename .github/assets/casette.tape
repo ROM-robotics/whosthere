@@ -5,7 +5,7 @@
 Set Padding 0
 Set Shell zsh
 Output demo.gif
-Set FontSize 18
+Set FontSize 20
 Set Width 1920
 Set Height 1080
 Set CursorBlink false
