@@ -109,8 +109,8 @@ Whosthere can be configured via a YAML configuration file.
 By default, it looks for the configuration file in the following order:
 
 - Path specified in the `WHOSTHERE_CONFIG` environment variable (if set)
-- `$XDG_CONFIG_HOME/whosthere/whosthere.yaml` (if `XDG_CONFIG_HOME` is set)
-- `~/.config/whosthere/whosthere.yaml` (otherwise)
+- `$XDG_CONFIG_HOME/whosthere/config.yaml` (if `XDG_CONFIG_HOME` is set)
+- `~/.config/whosthere/config.yaml` (otherwise)
 
 When not running in TUI mode, logs are also written to the console output.
 
