@@ -204,17 +204,14 @@ When not running in TUI mode, logs are also output to the console.
 
 ## Known Issues
 
-For clipboard functionality to work:
+For clipboard functionality to work, a [**fork of go-clipboard**](https://github.com/dece2183/go-clipboard) is used.
+Ensure you have the appropriate copy tool installed for your OS:
 
-**Runtime requirements:**
-
-- **Linux (X11)**: X11 client library (e.g., `libx11-6` on Ubuntu, `libX11` on Fedora/Arch, often pre-installed).
-- **Linux (Wayland)**: Not natively supported. May require XWayland.
-- **macOS/Windows**: No dependencies.
-
-**Build requirements** (when compiling from source):
-
-- Linux: X11 development package (`libx11-dev`, `libX11-devel`, or `libx11`)
+| OS                                     | Supported copy tools                         |
+| -------------------------------------- | -------------------------------------------- |
+| Darwin                                 | `pbcopy`                                     |
+| Windows                                | `clip.exe`                                   |
+| Linux/FreeBSD/NetBSD/OpenBSD/Dragonfly | X11: `xsel`, `xclip` <br> Wayland: `wl-copy` |
 
 ## Disclaimer
 

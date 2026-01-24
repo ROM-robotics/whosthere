@@ -16,10 +16,11 @@ deps:
 	pipx install mdformat
 	pipx inject mdformat mdformat-gfm
 	go install github.com/shurcooL/markdownfmt@latest
+	brew install goreleaser
 	brew install golangci-lint
 	brew upgrade golangci-lint
 
-default: deps fmt lint install test
+default: deps fmt lint install test release-clean
 
 build:
 	CGO_ENABLED=0 go build -ldflags '$(LDFLAGS)' -o $(APP_NAME) .
@@ -38,4 +39,8 @@ fmt:
 test:
 	go test -v -cover -race -timeout=120s -parallel=10 ./...
 
-.PHONY: fmt lint test build install deps
+# to test a goreleaser release locally without pushing anything
+release-clean:
+	goreleaser release --snapshot --clean
+
+.PHONY: fmt lint test build install deps release-clean

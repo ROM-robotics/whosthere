@@ -8,10 +8,8 @@ on:
 permissions:
   contents: write
 
-# based on this blog post after running into cross-compilation issues with COGO_ENABLED:
-# https://www.bytebase.com/blog/how-to-cross-compile-with-cgo-use-goreleaser-and-github-action/
 jobs:
-  goreleaser-linux:
+  goreleaser-darwin:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -22,50 +20,11 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Install cross-compiler for linux/arm64 and linux/386
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc-aarch64-linux-gnu gcc-i686-linux-gnu libx11-dev
-
       - name: Release
         uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6
         with:
-          args: release --clean --config .goreleaser-for-linux.yaml
-          distribution: goreleaser
-          version: "~> v2"
-        env:
-          # no need to write to homebrew cask repo here, so regular token is fine
-          GITHUB_TOKEN: ${{ github.token }}
-
-  goreleaser-darwin:
-    needs: goreleaser-linux
-    runs-on: macos-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-
-      - name: Setup Go
-        uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
-        with:
-          go-version-file: go.mod
-
-      - name: Release
-        uses: goreleaser/goreleaser-action@e435ccd777264be153ace6237001ef4d979d3a7a # v6
-        with:
-          args: release --clean --config .goreleaser-for-darwin.yaml
+          args: release --clean
           distribution: goreleaser
           version: "~> v2"
         env:
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-
-  checksums:
-    needs: goreleaser-darwin
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
-      - name: Generate and upload checksums
-        run: bash .github/scripts/checksums.sh
-        env:
-          # no need to write to homebrew cask repo here, so regular token is fine
-          GITHUB_TOKEN: ${{ github.token }}
