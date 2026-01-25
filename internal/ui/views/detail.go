@@ -34,10 +34,7 @@ func NewDetailView(emit func(events.Event), queue func(f func())) *DetailView {
 
 	info := tview.NewTextView().SetDynamicColors(true).SetWrap(true)
 	info.SetBorder(true).
-		SetTitle(" Details ").
-		SetTitleColor(tview.Styles.TitleColor).
-		SetBorderColor(tview.Styles.BorderColor).
-		SetBackgroundColor(tview.Styles.PrimitiveBackgroundColor)
+		SetTitle(" Details ")
 
 	statusBar := components.NewStatusBar()
 	statusBar.SetHelp("Esc/q: Back" + components.Divider + "y: Copy IP" + components.Divider + "p: Port Scan")
@@ -95,8 +92,45 @@ func (d *DetailView) Render(s state.ReadOnly) {
 		return
 	}
 
-	labelColor := utils.ColorToHexTag(tview.Styles.SecondaryTextColor)
-	valueColor := utils.ColorToHexTag(tview.Styles.PrimaryTextColor)
+	noColor := s.NoColor()
+	var labelColor, valueColor string
+	if !noColor {
+		labelColor = utils.ColorToHexTag(tview.Styles.SecondaryTextColor)
+		valueColor = utils.ColorToHexTag(tview.Styles.PrimaryTextColor)
+	}
+
+	writeLine := func(label, value string) {
+		if noColor {
+			_, _ = fmt.Fprintf(d.info, "%s: %s\n", label, value)
+		} else {
+			_, _ = fmt.Fprintf(d.info, "[%s::b]%s:[-::-] [%s::]%s[-::-]\n", labelColor, label, valueColor, value)
+		}
+	}
+
+	writeSection := func(label string) {
+		if noColor {
+			_, _ = fmt.Fprintf(d.info, "%s:\n", label)
+		} else {
+			_, _ = fmt.Fprintf(d.info, "[%s::b]%s:[-::-]\n", labelColor, label)
+		}
+	}
+
+	writeProto := func(key string) {
+		if noColor {
+			_, _ = fmt.Fprintf(d.info, "  %s:\n", strings.ToUpper(key))
+		} else {
+			_, _ = fmt.Fprintf(d.info, "  [%s::b]%s:[-::-]\n", labelColor, strings.ToUpper(key))
+		}
+	}
+
+	writeLastScan := func(timeStr string) {
+		if noColor {
+			_, _ = fmt.Fprintf(d.info, "Last portscan: %s\n", timeStr)
+		} else {
+			_, _ = fmt.Fprintf(d.info, "[%s::b]Last portscan:[-::-] %s\n", labelColor, timeStr)
+		}
+	}
+
 	formatTime := func(t time.Time) string {
 		if t.IsZero() {
 			return ""
@@ -104,14 +138,15 @@ func (d *DetailView) Render(s state.ReadOnly) {
 		return t.Format("2006-01-02 15:04:05")
 	}
 
-	_, _ = fmt.Fprintf(d.info, "[%s::b]IP:[-::-] [%s::]%s[-::-]\n", labelColor, valueColor, device.IP)
-	_, _ = fmt.Fprintf(d.info, "[%s::b]Display Name:[-::-] [%s::]%s[-::-]\n", labelColor, valueColor, device.DisplayName)
-	_, _ = fmt.Fprintf(d.info, "[%s::b]MAC:[-::-] [%s::]%s[-::-]\n", labelColor, valueColor, device.MAC)
-	_, _ = fmt.Fprintf(d.info, "[%s::b]Manufacturer:[-::-] [%s::]%s[-::-]\n", labelColor, valueColor, device.Manufacturer)
-	_, _ = fmt.Fprintf(d.info, "[%s::b]First Seen:[-::-] [%s::]%s[-::-]\n", labelColor, valueColor, formatTime(device.FirstSeen))
-	_, _ = fmt.Fprintf(d.info, "[%s::b]Last Seen:[-::-] [%s::]%s[-::-]\n\n", labelColor, valueColor, formatTime(device.LastSeen))
+	writeLine("IP", device.IP.String())
+	writeLine("Display Name", device.DisplayName)
+	writeLine("MAC", device.MAC)
+	writeLine("Manufacturer", device.Manufacturer)
+	writeLine("First Seen", formatTime(device.FirstSeen))
+	writeLine("Last Seen", formatTime(device.LastSeen))
+	_, _ = fmt.Fprintln(d.info)
 
-	_, _ = fmt.Fprintf(d.info, "[%s::b]Sources:[-::-]\n", labelColor)
+	writeSection("Sources")
 	if len(device.Sources) == 0 {
 		_, _ = fmt.Fprintln(d.info, "  (none)")
 	} else {
@@ -120,26 +155,28 @@ func (d *DetailView) Render(s state.ReadOnly) {
 		}
 	}
 
-	_, _ = fmt.Fprintf(d.info, "\n[%s::b]Open Ports:[-::-]\n", labelColor)
+	_, _ = fmt.Fprintln(d.info)
+	writeSection("Open Ports")
 	if len(device.OpenPorts) == 0 {
-		_, _ = fmt.Fprintln(d.info, "  (none)")
+		_, _ = fmt.Fprintln(d.info, "  (no ports scanned yet)")
 	} else {
 		for _, key := range utils.SortedKeys(device.OpenPorts) {
 			ports := device.OpenPorts[key]
 			if len(ports) > 0 {
-				_, _ = fmt.Fprintf(d.info, "  [%s::b]%s:[-::-]\n", labelColor, strings.ToUpper(key))
+				writeProto(key)
 				for _, port := range ports {
 					_, _ = fmt.Fprintf(d.info, "    %d\n", port)
 				}
-				_, _ = fmt.Fprintf(d.info, "\n")
+				_, _ = fmt.Fprintln(d.info)
 			}
 		}
 		if !device.LastPortScan.IsZero() {
-			_, _ = fmt.Fprintf(d.info, "[%s::b]Last portscan:[-::-] %s\n", labelColor, device.LastPortScan.Format("2006-01-02 15:04:05"))
+			writeLastScan(device.LastPortScan.Format("2006-01-02 15:04:05"))
 		}
 	}
 
-	_, _ = fmt.Fprintf(d.info, "\n[%s::b]Extra Data:[-::-]\n", labelColor)
+	_, _ = fmt.Fprintln(d.info)
+	writeSection("Extra Data")
 	if len(device.ExtraData) == 0 {
 		_, _ = fmt.Fprintln(d.info, "  (none)")
 	} else {

@@ -102,6 +102,7 @@ Whosthere is supported on the following platforms:
 | ------------------ | ------------------------------------------------------------------------------- |
 | `WHOSTHERE_CONFIG` | Path to the configuration file, to be able to overwrite the default location.   |
 | `WHOSTHERE_LOG`    | Set the log level (e.g., `debug`, `info`, `warn`, `error`). Defaults to `info`. |
+| `NO_COLOR`         | Disable ANSI colors in the TUI.                                                 |
 
 ## Configuration
 
@@ -131,8 +132,10 @@ splash:
 
 # Theme configuration
 theme:
-  # Configure the theme to use for the TUI, complete list of available themes at:
-  # https://github.com/ramonvermeulen/whosthere/tree/main/internal/ui/theme/theme.go
+  # When disabled, the TUI will use the terminal it's default ANSI colors
+  # Also see the NO_COLOR environment variable to completely disable ANSI colors
+  enabled: true
+  # See the complete list of available themes at https://github.com/ramonvermeulen/whosthere/tree/main/internal/ui/theme/theme.go
   # Set name to "custom" to use the custom colors below
   # For any color that is not configured it will take the default theme value as fallback
   name: default
@@ -188,10 +191,13 @@ Example of theme configuration:
 
 ```yaml
 theme:
+  enabled: true
   name: cyberpunk
 ```
 
 When the `name` is set to `custom`, the other color options can be used to create your own custom theme.
+When the `enabled` option is set to `false`, the TUI will use the terminal's default ANSI colors.
+When `NO_COLOR` environment variable is set, all ANSI colors will be disabled.
 
 ## Logging
 

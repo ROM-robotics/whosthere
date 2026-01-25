@@ -131,7 +131,9 @@ splash:
 
 # Theme configuration
 theme:
-  # Configure the theme to use for the TUI
+  # When disabled, the TUI will use the terminal it's default ANSI colors
+  # Also see the NO_COLOR environment variable to completely disable ANSI colors
+  enabled: %t
   # See the complete list of available themes at https://github.com/ramonvermeulen/whosthere/tree/main/internal/ui/theme/theme.go
   # Set name to "custom" to use the custom colors below
   # For any color that is not configured it will take the default theme value as fallback
@@ -172,6 +174,7 @@ port_scanner:
 		cfg.ScanDuration,
 		cfg.Splash.Enabled,
 		cfg.Splash.Delay,
+		cfg.Theme.Enabled,
 		cfg.Theme.Name,
 		cfg.Scanners.MDNS.Enabled,
 		cfg.Scanners.SSDP.Enabled,

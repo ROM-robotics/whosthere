@@ -5,6 +5,8 @@ import (
 	"io"
 	"os"
 	"runtime"
+
+	"github.com/ramonvermeulen/whosthere/internal/ui/theme"
 )
 
 // Version and Commit are set via -ldflags at build time.
@@ -13,9 +15,6 @@ var (
 	Version = "dev"
 	Commit  = "unknown"
 	Date    = "unknown"
-)
-
-const (
 	// ANSII color codes for labels
 	cyan  = "\033[36m"
 	reset = "\033[0m"
@@ -25,6 +24,10 @@ const (
 func Fprint(w io.Writer) {
 	if w == nil {
 		w = os.Stdout
+	}
+	if theme.IsNoColor() {
+		cyan = ""
+		reset = ""
 	}
 	_, _ = fmt.Fprintf(w, "%sOS:%s         %s/%s\n", cyan, reset, runtime.GOOS, runtime.GOARCH)
 	_, _ = fmt.Fprintf(w, "%sVersion:%s    %s\n", cyan, reset, Version)

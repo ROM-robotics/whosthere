@@ -9,28 +9,17 @@ import (
 	"github.com/ramonvermeulen/whosthere/internal/core/config"
 	"github.com/ramonvermeulen/whosthere/internal/core/version"
 	"github.com/ramonvermeulen/whosthere/internal/ui"
+	"github.com/ramonvermeulen/whosthere/internal/ui/theme"
 	"github.com/spf13/cobra"
 	"go.uber.org/zap"
 )
 
-const (
+var (
 	appName      = "whosthere"
 	shortAppDesc = "Local network discovery tool with a modern TUI interface."
-	longAppDesc  = cyan + "whosthere [global options] <subcommand> [args]\n" + reset + `
-Knock Knock..
-          _               _   _                   ___
-__      _| |__   ___  ___| |_| |__   ___ _ __ ___/ _ \
-\ \ /\ / / '_ \ / _ \/ __| __| '_ \ / _ \ '__/ _ \// /
- \ V  V /| | | | (_) \__ \ |_| | | |  __/ | |  __/ \/
-  \_/\_/ |_| |_|\___/|___/\__|_| |_|\___|_|  \___| () 
-
-
-Local Area Network discovery tool with a modern Terminal User Interface (TUI) written in Go. 
-Discover, explore, and understand your LAN in an intuitive way.
-
-Knock Knock... who's there? 🚪`
-	cyan  = "\033[36m"
-	reset = "\033[0m"
+	cyan         = "\033[36m"
+	reset        = "\033[0m"
+	longAppDesc  string
 )
 
 var (
@@ -49,6 +38,24 @@ var (
 
 func init() {
 	rootCmd.Version = version.Version
+	if theme.IsNoColor() {
+		cyan = ""
+		reset = ""
+	}
+	longAppDesc = cyan + "whosthere [global options] <subcommand> [args]\n" + reset + `
+Knock Knock..
+          _               _   _                   ___
+__      _| |__   ___  ___| |_| |__   ___ _ __ ___/ _ \
+\ \ /\ / / '_ \ / _ \/ __| __| '_ \ / _ \ '__/ _ \// /
+ \ V  V /| | | | (_) \__ \ |_| | | |  __/ | |  __/ \/
+  \_/\_/ |_| |_|\___/|___/\__|_| |_|\___|_|  \___| ()
+
+
+Local Area Network discovery tool with a modern Terminal User Interface (TUI) written in Go.
+Discover, explore, and understand your LAN in an intuitive way.
+
+Knock Knock... who's there? 🚪`
+	rootCmd.Long = longAppDesc
 	initWhosthereFlags()
 	setCobraUsageTemplate()
 }
