@@ -39,7 +39,7 @@ func init() {
 		cyan = ""
 		reset = ""
 	}
-	longAppDesc = cyan + "whosthere [global options] <subcommand> [args]\n" + reset + `
+	longAppDesc = cyan + "whosthere [global flags] <subcommand> [args]\n" + reset + `
 Knock Knock..
           _               _   _                   ___
 __      _| |__   ___  ___| |_| |__   ___ _ __ ___/ _ \
