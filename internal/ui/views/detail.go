@@ -37,7 +37,7 @@ func NewDetailView(emit func(events.Event), queue func(f func())) *DetailView {
 		SetTitle(" Details ")
 
 	statusBar := components.NewStatusBar()
-	statusBar.SetHelp("Esc/q: Back" + components.Divider + "y: Copy IP" + components.Divider + "p: Port Scan")
+	statusBar.SetHelp("Esc/q: Back" + components.Divider + "y: Copy IP" + components.Divider + "p: Port Scan" + components.Divider + "r: Probe" + components.Divider + "w: WoL")
 
 	main.AddItem(header, 1, 0, false)
 	main.AddItem(info, 0, 1, true)
@@ -71,6 +71,12 @@ func handleInput(p *DetailView) func(ev *tcell.EventKey) *tcell.EventKey {
 			return nil
 		case ev.Rune() == 'p':
 			p.emit(events.NavigateTo{Route: routes.RoutePortScan, Overlay: true})
+			return nil
+		case ev.Rune() == 'r':
+			p.emit(events.ProbeStarted{})
+			return nil
+		case ev.Rune() == 'w':
+			p.emit(events.WoLRequested{})
 			return nil
 		case ev.Rune() == 'y':
 			p.emit(events.CopyIP{})
@@ -142,6 +148,18 @@ func (d *DetailView) Render(s state.ReadOnly) {
 	writeLine("Display Name", device.DisplayName)
 	writeLine("MAC", device.MAC)
 	writeLine("Manufacturer", device.Manufacturer)
+	if device.DeviceType != "" {
+		writeLine("Device Type", device.DeviceType)
+	}
+	if device.ReverseDNS != "" {
+		writeLine("Reverse DNS", device.ReverseDNS)
+	}
+	if device.NetBIOSName != "" {
+		writeLine("NetBIOS Name", device.NetBIOSName)
+	}
+	if device.Latency > 0 {
+		writeLine("Latency", device.Latency.Round(time.Microsecond).String())
+	}
 	writeLine("First Seen", formatTime(device.FirstSeen))
 	writeLine("Last Seen", formatTime(device.LastSeen))
 	_, _ = fmt.Fprintln(d.info)
@@ -165,7 +183,21 @@ func (d *DetailView) Render(s state.ReadOnly) {
 			if len(ports) > 0 {
 				writeProto(key)
 				for _, port := range ports {
-					_, _ = fmt.Fprintf(d.info, "    %d\n", port)
+					bannerText := ""
+					if device.Banners != nil {
+						if b, ok := device.Banners[port]; ok && b != "" {
+							bannerText = b
+						}
+					}
+					if bannerText != "" {
+						if noColor {
+							_, _ = fmt.Fprintf(d.info, "    %d  %s\n", port, bannerText)
+						} else {
+							_, _ = fmt.Fprintf(d.info, "    [%s::]%d[-::-]  [%s::]%s[-::-]\n", valueColor, port, labelColor, bannerText)
+						}
+					} else {
+						_, _ = fmt.Fprintf(d.info, "    %d\n", port)
+					}
 				}
 				_, _ = fmt.Fprintln(d.info)
 			}
@@ -185,10 +217,29 @@ func (d *DetailView) Render(s state.ReadOnly) {
 		}
 	}
 
+	if device.HTTPTitle != "" || device.HTTPServer != "" {
+		_, _ = fmt.Fprintln(d.info)
+		writeSection("HTTP Info")
+		if device.HTTPServer != "" {
+			_, _ = fmt.Fprintf(d.info, "  Server: %s\n", device.HTTPServer)
+		}
+		if device.HTTPTitle != "" {
+			_, _ = fmt.Fprintf(d.info, "  Title: %s\n", device.HTTPTitle)
+		}
+	}
+
+	if !device.LastProbe.IsZero() {
+		_, _ = fmt.Fprintln(d.info)
+		writeLine("Last Probe", formatTime(device.LastProbe))
+	}
+
 	d.header.Render(s)
 	d.statusBar.Render(s)
 
 	switch {
+	case s.IsProbing():
+		d.statusBar.Spinner().SetSuffix(" Probing device...")
+		d.statusBar.Spinner().Start(d.queue)
 	case s.IsPortscanning():
 		d.statusBar.Spinner().SetSuffix(" Port scanning...")
 		d.statusBar.Spinner().Start(d.queue)

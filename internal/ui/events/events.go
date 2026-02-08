@@ -62,3 +62,17 @@ type SearchFinished struct{}
 type CopyIP struct {
 	IP string
 }
+
+// InterfaceSelected is emitted when a network interface is selected from the picker.
+type InterfaceSelected struct {
+	Name string
+}
+
+// ProbeStarted is emitted when a deep device probe begins.
+type ProbeStarted struct{}
+
+// ProbeStopped is emitted when a deep device probe finishes.
+type ProbeStopped struct{}
+
+// WoLRequested is emitted to send a Wake-on-LAN packet to the selected device.
+type WoLRequested struct{}

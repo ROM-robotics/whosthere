@@ -21,12 +21,16 @@ type ReadOnly interface {
 	FilterPattern() string
 	IsDiscovering() bool
 	IsPortscanning() bool
+	IsProbing() bool
 	Config() config.Config
 	GetDevice(ip string) (discovery.Device, bool)
 	SearchActive() bool
 	SearchText() string
 	SearchError() bool
 	NoColor() bool
+	ActiveInterface() string
+	LocalIP() string
+	AvailableInterfaces() []discovery.InterfaceEntry
 }
 
 // AppState holds application-level state shared across views and
@@ -34,17 +38,21 @@ type ReadOnly interface {
 type AppState struct {
 	mu sync.RWMutex
 
-	devices        map[string]discovery.Device
-	selectedIP     string
-	previousTheme  string
-	version        string
-	filterPattern  string
-	isDiscovering  bool
-	isPortscanning bool
-	cfg            *config.Config
-	searchError    bool
-	searchActive   bool
-	noColor        bool
+	devices             map[string]discovery.Device
+	selectedIP          string
+	previousTheme       string
+	version             string
+	filterPattern       string
+	isDiscovering       bool
+	isPortscanning      bool
+	isProbing           bool
+	cfg                 *config.Config
+	searchError         bool
+	searchActive        bool
+	noColor             bool
+	activeInterface     string
+	localIP             string
+	availableInterfaces []discovery.InterfaceEntry
 }
 
 func NewAppState(cfg *config.Config, version string) *AppState {
@@ -208,6 +216,20 @@ func (s *AppState) IsPortscanning() bool {
 	return s.isPortscanning
 }
 
+// SetIsProbing sets the probing state.
+func (s *AppState) SetIsProbing(probing bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.isProbing = probing
+}
+
+// IsProbing returns the probing state.
+func (s *AppState) IsProbing() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.isProbing
+}
+
 // Config returns the port scanner configuration.
 func (s *AppState) Config() config.Config {
 	s.mu.RLock()
@@ -269,4 +291,53 @@ func (s *AppState) NoColor() bool {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.noColor
+}
+
+// SetActiveInterface sets the active network interface name.
+func (s *AppState) SetActiveInterface(name string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.activeInterface = name
+}
+
+// ActiveInterface returns the active network interface name.
+func (s *AppState) ActiveInterface() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.activeInterface
+}
+
+// SetLocalIP stores the local IP address of the active interface.
+func (s *AppState) SetLocalIP(ip string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.localIP = ip
+}
+
+// LocalIP returns the local IP address of the active interface.
+func (s *AppState) LocalIP() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.localIP
+}
+
+// SetAvailableInterfaces stores the list of available network interfaces.
+func (s *AppState) SetAvailableInterfaces(ifaces []discovery.InterfaceEntry) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.availableInterfaces = ifaces
+}
+
+// AvailableInterfaces returns the list of available network interfaces.
+func (s *AppState) AvailableInterfaces() []discovery.InterfaceEntry {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.availableInterfaces
+}
+
+// ClearDevices removes all discovered devices (used when switching interfaces).
+func (s *AppState) ClearDevices() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.devices = make(map[string]discovery.Device)
 }

@@ -32,5 +32,11 @@ func (h *Header) Render(s state.ReadOnly) {
 	if version := s.Version(); version != "" {
 		text = baseTitle + " - v" + version
 	}
+	if localIP := s.LocalIP(); localIP != "" {
+		text += "  |  " + localIP
+		if iface := s.ActiveInterface(); iface != "" {
+			text += " (" + iface + ")"
+		}
+	}
 	h.SetText(text)
 }

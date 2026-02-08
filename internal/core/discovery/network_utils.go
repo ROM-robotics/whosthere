@@ -67,23 +67,150 @@ func getNetworkInterface(interfaceName string) (*net.Interface, error) {
 	return iface, nil
 }
 
-// getDefaultInterface attempts to return the OS default network interface
+// isLANSuitable returns true if the interface is suitable for LAN discovery.
+// It filters out loopback, down, point-to-point (VPN/TUN), and interfaces
+// without a usable IPv4 subnet (e.g. /32).
+func isLANSuitable(iface net.Interface) bool {
+	if iface.Flags&net.FlagUp == 0 {
+		return false
+	}
+	if iface.Flags&net.FlagLoopback != 0 {
+		return false
+	}
+	// Point-to-point interfaces (VPN tunnels like outline-tun0, wg0, etc.)
+	// are not suitable for LAN discovery because they don't support
+	// broadcast/multicast needed by mDNS, SSDP, and ARP scanning.
+	if iface.Flags&net.FlagPointToPoint != 0 {
+		return false
+	}
+	// Must have broadcast capability for LAN protocols
+	if iface.Flags&net.FlagBroadcast == 0 {
+		return false
+	}
+	// Must have at least one IPv4 address with a subnet larger than /31
+	addrs, err := iface.Addrs()
+	if err != nil {
+		return false
+	}
+	for _, addr := range addrs {
+		ipnet, ok := addr.(*net.IPNet)
+		if !ok || ipnet.IP.To4() == nil {
+			continue
+		}
+		ones, _ := ipnet.Mask.Size()
+		if ones <= 30 {
+			return true
+		}
+	}
+	return false
+}
+
+// InterfaceEntry holds information about a network interface for display in the UI.
+type InterfaceEntry struct {
+	Name   string
+	IPv4   string
+	Subnet string
+	MAC    string
+	Flags  string
+	IsVPN  bool
+}
+
+// ListAllInterfaces returns all non-loopback, up interfaces with IPv4 addresses,
+// marking VPN/TUN interfaces so the UI can display them distinctly.
+func ListAllInterfaces() []InterfaceEntry {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return nil
+	}
+	var result []InterfaceEntry
+	for _, iface := range interfaces {
+		if iface.Flags&net.FlagUp == 0 || iface.Flags&net.FlagLoopback != 0 {
+			continue
+		}
+		addrs, err := iface.Addrs()
+		if err != nil {
+			continue
+		}
+		for _, addr := range addrs {
+			ipnet, ok := addr.(*net.IPNet)
+			if !ok || ipnet.IP.To4() == nil {
+				continue
+			}
+			isVPN := iface.Flags&net.FlagPointToPoint != 0 || iface.Flags&net.FlagBroadcast == 0
+			entry := InterfaceEntry{
+				Name:   iface.Name,
+				IPv4:   ipnet.IP.String(),
+				Subnet: ipnet.String(),
+				MAC:    iface.HardwareAddr.String(),
+				IsVPN:  isVPN,
+			}
+			// Build flags description
+			var flags []string
+			if iface.Flags&net.FlagBroadcast != 0 {
+				flags = append(flags, "broadcast")
+			}
+			if iface.Flags&net.FlagPointToPoint != 0 {
+				flags = append(flags, "point-to-point")
+			}
+			if iface.Flags&net.FlagMulticast != 0 {
+				flags = append(flags, "multicast")
+			}
+			if len(flags) > 0 {
+				entry.Flags = fmt.Sprintf("[%s]", joinStrings(flags, ", "))
+			}
+			result = append(result, entry)
+			break // one entry per interface
+		}
+	}
+	return result
+}
+
+func joinStrings(ss []string, sep string) string {
+	result := ""
+	for i, s := range ss {
+		if i > 0 {
+			result += sep
+		}
+		result += s
+	}
+	return result
+}
+
+// getDefaultInterface attempts to return the OS default network interface.
+// It prefers LAN-suitable interfaces over VPN/tunnel interfaces.
 func getDefaultInterface() (*net.Interface, error) {
-	// try to get default interface by sending UDP packet
-	if name, err := getInterfaceNameByUDP(); err == nil {
-		return name, nil
+	// First try UDP-based detection
+	if iface, err := getInterfaceNameByUDP(); err == nil {
+		// Verify the detected interface is LAN-suitable
+		if isLANSuitable(*iface) {
+			return iface, nil
+		}
+		zap.L().Warn("UDP-detected interface is not LAN-suitable (likely VPN)",
+			zap.String("interface", iface.Name),
+			zap.String("flags", iface.Flags.String()),
+		)
 	}
 
-	// if that fails, return the first non-loopback interface that is up
-	// this is often the default interface, but in special cases it might not be
-	// todo: find better solution in the future, maybe by parsing routing table?
+	// Fallback: find the best LAN-suitable interface
 	interfaces, err := net.Interfaces()
 	if err != nil {
 		return nil, err
 	}
 
+	// Prefer broadcast-capable, non-VPN interfaces
+	for _, iface := range interfaces {
+		if isLANSuitable(iface) {
+			zap.L().Info("selected LAN-suitable interface (VPN fallback)",
+				zap.String("interface", iface.Name))
+			return &iface, nil
+		}
+	}
+
+	// Last resort: any non-loopback, up interface
 	for _, iface := range interfaces {
 		if iface.Flags&net.FlagLoopback == 0 && iface.Flags&net.FlagUp != 0 {
+			zap.L().Warn("no LAN-suitable interface found, using first available",
+				zap.String("interface", iface.Name))
 			return &iface, nil
 		}
 	}

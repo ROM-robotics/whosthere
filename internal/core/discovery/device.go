@@ -31,12 +31,20 @@ type Device struct {
 	ExtraData    map[string]string   `json:"extraData"`    // additional key/value metadata discovered from protocols
 	OpenPorts    map[string][]int    `json:"-"`            // protocol -> list of open ports
 	LastPortScan time.Time           `json:"-"`            // last time port scan was performed
+	Latency      time.Duration       `json:"-"`            // TCP ping round-trip latency
+	ReverseDNS   string              `json:"-"`            // reverse DNS hostname (PTR record)
+	Banners      map[int]string      `json:"-"`            // port -> service banner text
+	HTTPTitle    string              `json:"-"`            // HTML <title> from web server
+	HTTPServer   string              `json:"-"`            // HTTP Server header value
+	DeviceType   string              `json:"deviceType"`   // fingerprinted device classification
+	NetBIOSName  string              `json:"netbiosName"`  // NetBIOS/SMB hostname
+	LastProbe    time.Time           `json:"-"`            // last time deep probe was performed
 }
 
 // NewDevice builds a Device with initialized maps and current timestamp as first/last seen.
 func NewDevice(ip net.IP) Device {
 	now := time.Now()
-	return Device{IP: ip, Services: map[string]int{}, Sources: map[string]struct{}{}, FirstSeen: now, LastSeen: now, ExtraData: map[string]string{}, OpenPorts: map[string][]int{}}
+	return Device{IP: ip, Services: map[string]int{}, Sources: map[string]struct{}{}, FirstSeen: now, LastSeen: now, ExtraData: map[string]string{}, OpenPorts: map[string][]int{}, Banners: map[int]string{}}
 }
 
 // Merge merges fields into an existing Device
@@ -110,5 +118,34 @@ func (d *Device) Merge(other *Device) {
 	}
 	if other.LastPortScan.After(d.LastPortScan) {
 		d.LastPortScan = other.LastPortScan
+	}
+	if d.ReverseDNS == "" && other.ReverseDNS != "" {
+		d.ReverseDNS = other.ReverseDNS
+	}
+	if d.NetBIOSName == "" && other.NetBIOSName != "" {
+		d.NetBIOSName = other.NetBIOSName
+	}
+	if d.DeviceType == "" && other.DeviceType != "" {
+		d.DeviceType = other.DeviceType
+	}
+	if d.HTTPTitle == "" && other.HTTPTitle != "" {
+		d.HTTPTitle = other.HTTPTitle
+	}
+	if d.HTTPServer == "" && other.HTTPServer != "" {
+		d.HTTPServer = other.HTTPServer
+	}
+	if other.Latency > 0 && (d.Latency == 0 || other.Latency < d.Latency) {
+		d.Latency = other.Latency
+	}
+	if d.Banners == nil {
+		d.Banners = map[int]string{}
+	}
+	for port, banner := range other.Banners {
+		if _, ok := d.Banners[port]; !ok {
+			d.Banners[port] = banner
+		}
+	}
+	if other.LastProbe.After(d.LastProbe) {
+		d.LastProbe = other.LastProbe
 	}
 }
