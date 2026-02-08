@@ -37,6 +37,7 @@ type Device struct {
 	HTTPTitle    string              `json:"-"`            // HTML <title> from web server
 	HTTPServer   string              `json:"-"`            // HTTP Server header value
 	DeviceType   string              `json:"deviceType"`   // fingerprinted device classification
+	OS           string              `json:"os"`           // detected operating system
 	NetBIOSName  string              `json:"netbiosName"`  // NetBIOS/SMB hostname
 	LastProbe    time.Time           `json:"-"`            // last time deep probe was performed
 }
@@ -127,6 +128,9 @@ func (d *Device) Merge(other *Device) {
 	}
 	if d.DeviceType == "" && other.DeviceType != "" {
 		d.DeviceType = other.DeviceType
+	}
+	if d.OS == "" && other.OS != "" {
+		d.OS = other.OS
 	}
 	if d.HTTPTitle == "" && other.HTTPTitle != "" {
 		d.HTTPTitle = other.HTTPTitle

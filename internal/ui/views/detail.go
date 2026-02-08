@@ -151,6 +151,9 @@ func (d *DetailView) Render(s state.ReadOnly) {
 	if device.DeviceType != "" {
 		writeLine("Device Type", device.DeviceType)
 	}
+	if device.OS != "" {
+		writeLine("OS", device.OS)
+	}
 	if device.ReverseDNS != "" {
 		writeLine("Reverse DNS", device.ReverseDNS)
 	}

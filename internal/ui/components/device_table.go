@@ -188,7 +188,7 @@ func (dt *DeviceTable) SelectLast() {
 }
 
 type tableRow struct {
-	ip, hostname, mac, manufacturer, lastSeen string
+	ip, hostname, mac, manufacturer, os, lastSeen string
 }
 
 func (dt *DeviceTable) buildRows() []tableRow {
@@ -199,6 +199,7 @@ func (dt *DeviceTable) buildRows() []tableRow {
 			hostname:     d.DisplayName,
 			mac:          d.MAC,
 			manufacturer: d.Manufacturer,
+			os:           d.OS,
 			lastSeen:     utils.FmtDuration(time.Since(d.LastSeen)),
 		}
 		if dt.filterRE != nil && !dt.rowMatches(&row) {
@@ -214,7 +215,7 @@ func (dt *DeviceTable) refresh() {
 	dt.Clear()
 	const maxColWidth = 30
 
-	headers := []string{"IP", "Display Name", "MAC", "Manufacturer", "Last Seen"}
+	headers := []string{"IP", "Display Name", "MAC", "Manufacturer", "OS", "Last Seen"}
 
 	for i, h := range headers {
 		text := utils.Truncate(h, maxColWidth)
@@ -239,13 +240,15 @@ func (dt *DeviceTable) refresh() {
 		hostText := utils.Truncate(rowData.hostname, maxColWidth)
 		macText := utils.Truncate(rowData.mac, maxColWidth)
 		manuText := utils.Truncate(rowData.manufacturer, maxColWidth)
+		osText := utils.Truncate(rowData.os, maxColWidth)
 		seenText := utils.Truncate(rowData.lastSeen, maxColWidth)
 
 		dt.SetCell(r, 0, tview.NewTableCell(ipText).SetExpansion(1))
 		dt.SetCell(r, 1, tview.NewTableCell(hostText).SetExpansion(1))
 		dt.SetCell(r, 2, tview.NewTableCell(macText).SetExpansion(1))
 		dt.SetCell(r, 3, tview.NewTableCell(manuText).SetExpansion(1))
-		dt.SetCell(r, 4, tview.NewTableCell(seenText).SetExpansion(1))
+		dt.SetCell(r, 4, tview.NewTableCell(osText).SetExpansion(1))
+		dt.SetCell(r, 5, tview.NewTableCell(seenText).SetExpansion(1))
 	}
 	// Restore selection if possible, otherwise select first.
 	if dt.GetRowCount() > 1 {
@@ -272,5 +275,6 @@ func (dt *DeviceTable) rowMatches(r *tableRow) bool {
 		dt.filterRE.MatchString(r.hostname) ||
 		dt.filterRE.MatchString(r.mac) ||
 		dt.filterRE.MatchString(r.manufacturer) ||
+		dt.filterRE.MatchString(r.os) ||
 		dt.filterRE.MatchString(r.lastSeen)
 }

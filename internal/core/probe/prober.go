@@ -21,6 +21,7 @@ type Result struct {
 	HTTPTitle   string
 	HTTPServer  string
 	DeviceType  string
+	OS          string
 	NetBIOSName string
 }
 
@@ -107,6 +108,10 @@ func (p *Prober) RunAll(ctx context.Context, ip, mac, manufacturer string, openP
 	// 5. Device fingerprinting
 	log.Debug("fingerprinting device", zap.String("ip", ip))
 	result.DeviceType = Fingerprint(mac, manufacturer, openPorts, result.Banners, result.NetBIOSName, result.HTTPServer, extraData)
+
+	// 6. OS detection
+	log.Debug("detecting OS", zap.String("ip", ip))
+	result.OS = DetectOS(ctx, ip, openPorts, result.Banners, result.HTTPServer, result.NetBIOSName, extraData, p.timeout)
 
 	return result
 }

@@ -458,6 +458,7 @@ func (a *App) startProbe() {
 	device.HTTPTitle = result.HTTPTitle
 	device.HTTPServer = result.HTTPServer
 	device.DeviceType = result.DeviceType
+	device.OS = result.OS
 	device.NetBIOSName = result.NetBIOSName
 	device.LastProbe = time.Now()
 
